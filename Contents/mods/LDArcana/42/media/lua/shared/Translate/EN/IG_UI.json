@@ -1,0 +1,11 @@
+{
+  "IGUI_LD_Position_past": "Past",
+  "IGUI_LD_Position_present": "Present",
+  "IGUI_LD_Position_future": "Future",
+
+  "IGUI_LD_SlotEmpty": "Empty",
+  "IGUI_LD_SlotHint": "Empty. Right-click to socket a card.",
+  "IGUI_LD_NoEffect": "No effect yet.",
+  "IGUI_LD_TakeOut": "Take the card back out.",
+  "IGUI_LD_DeckGone": "The rest of the deck is gone."
+}
