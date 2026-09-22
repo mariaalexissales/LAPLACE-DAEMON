@@ -1,0 +1,6 @@
+name=LAPLACE//DAEMON Arcana
+id=LDArcana
+author=Estral
+description=A Past, Present and Future tarot spread socketed into forged weapons. Where a card sits decides what it does - by Estral
+require=\LDCore
+versionMin=42.20

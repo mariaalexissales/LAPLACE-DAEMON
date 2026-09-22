@@ -1,0 +1,5 @@
+name=LAPLACE//DAEMON Core
+id=LDCore
+author=Estral
+description=Item rarity for blacksmith crafting. Forged blades roll a rarity from Blacksmith level and a damage roll within it, and keep both when they go on a handle - by Estral
+versionMin=42.20
