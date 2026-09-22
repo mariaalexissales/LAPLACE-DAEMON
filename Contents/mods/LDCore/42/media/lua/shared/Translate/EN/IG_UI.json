@@ -1,0 +1,24 @@
+{
+  "IGUI_LD_ItemName": "%1 - %2",
+
+  "IGUI_LD_Rarity_COMMON": "Common",
+  "IGUI_LD_Rarity_UNCOMMON": "Uncommon",
+  "IGUI_LD_Rarity_RARE": "Rare",
+  "IGUI_LD_Rarity_EPIC": "Epic",
+  "IGUI_LD_Rarity_LEGENDARY": "Legendary",
+
+  "IGUI_LD_Stat_minDamage": "Min Damage",
+  "IGUI_LD_Stat_maxDamage": "Max Damage",
+  "IGUI_LD_Stat_criticalChance": "Crit Chance",
+  "IGUI_LD_Stat_critMultiplier": "Crit Multiplier",
+  "IGUI_LD_Stat_baseSpeed": "Attack Speed",
+  "IGUI_LD_Stat_minRange": "Min Range",
+  "IGUI_LD_Stat_maxRange": "Max Range",
+  "IGUI_LD_Stat_knockback": "Knockback",
+  "IGUI_LD_Stat_conditionMax": "Max Condition",
+  "IGUI_LD_Stat_conditionLowerChance": "Condition Lower Chance",
+  "IGUI_LD_Stat_weight": "Encumbrance",
+  "IGUI_LD_Stat_doorDamage": "Door Damage",
+  "IGUI_LD_Stat_treeDamage": "Tree Damage",
+  "IGUI_LD_Stat_averageCondition": "Average Condition"
+}
