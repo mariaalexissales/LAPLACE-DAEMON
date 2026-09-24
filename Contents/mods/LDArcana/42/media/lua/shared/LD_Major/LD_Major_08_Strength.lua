@@ -6,7 +6,7 @@ require "LD_Arcana"
 
 -- VIII - Strength. Power.
 -- stats from the design: Max Damage, Knockback, Min Damage.
--- no effects yet. see LD_Major_00_Fool.lua for the format, then uncomment the slots.
+-- no effects yet.
 
 LDArcana.define("STRENGTH", {
     area = "Power",

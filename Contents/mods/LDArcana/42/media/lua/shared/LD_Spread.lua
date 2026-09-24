@@ -8,10 +8,6 @@ require "LD_Arcana"
 
 LDSpread = LDSpread or {}
 
--- the spread is stored inside the item's LD data as { past = id, present = id, future = id },
--- an empty slot being a missing key. LDCore copies the whole LD table when a blade goes on a
--- handle or comes off one, so the cards travel with it without core knowing they exist.
-
 function LDSpread.get(item)
     local data = LDItem.get(item)
     return data and data.arcana or nil

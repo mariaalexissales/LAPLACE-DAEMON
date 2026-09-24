@@ -6,7 +6,7 @@ require "LD_Arcana"
 
 -- I - The Magician. Precision.
 -- stats from the design: Crit Chance, Crit Multiplier, Attack Speed.
--- no effects yet. see LD_Major_00_Fool.lua for the format, then uncomment the slots.
+-- no effects yet.
 
 LDArcana.define("MAGICIAN", {
     area = "Precision",

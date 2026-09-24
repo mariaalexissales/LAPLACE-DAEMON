@@ -22,7 +22,6 @@ LDArcana.EFFECT_HOOKS = {
     hit   = LDCore.HOOK.WEAPON_HIT,
 }
 
--- fields a card carries outside its three slots.
 LDArcana.CARD_FIELDS = { area = true, theme = true, stats = true }
 
 -- what one arrow is worth. pct is a share of the weapon's rolled value, so a card is worth
@@ -47,7 +46,7 @@ LDArcana.STEPS = {
 }
 
 -- the card items live in this script module, as Tarot_<id>, with icon Item_LD_Tarot_<id>.
--- tools/build_tarot.ps1 writes the items, names and icons off the same ids, so a card added
+-- build_tarot.ps1 writes the items, names and icons off the same ids, so a card added
 -- here needs adding there too.
 LDArcana.ITEM_MODULE = "LDArcana"
 
@@ -57,7 +56,6 @@ LDArcana.Cards = LDArcana.Cards or {}
 -- item full type -> card id.
 LDArcana.CardByItem = LDArcana.CardByItem or {}
 
--- registration order, for menus.
 LDArcana.CARD_ORDER = LDArcana.CARD_ORDER or {}
 
 -- identity only. effects are attached afterwards with LDArcana.define. minor arcana can come
@@ -107,13 +105,12 @@ local LD_MAJORS = {
     { "WORLD", "The World" },
 }
 
--- numbered 0 to 21, the Fool first.
 for i, entry in ipairs(LD_MAJORS) do
     LDArcana.register(entry[1], entry[2], i - 1, "major")
 end
 
 -- the cards in play. the rest stay registered and keep their files, but have no item, never
--- come out of a deck and never show in a menu. tools/build_tarot.ps1 reads this list to
+-- come out of a deck and never show in a menu. build_tarot.ps1 reads this list to
 -- decide which items to write, so switching a card on means adding it here and re-running
 -- the tool.
 LDArcana.ACTIVE = { "EMPEROR", "CHARIOT", "DEATH", "TEMPERANCE" }
@@ -129,7 +126,6 @@ function LDArcana.isActive(id)
     return id ~= nil and LDArcana.IS_ACTIVE[id] == true
 end
 
--- the active cards in card order, for menus and draws.
 function LDArcana.activeCards()
     local out = {}
     for _, id in ipairs(LDArcana.CARD_ORDER) do
@@ -166,7 +162,6 @@ function LDArcana.cardTexture(id)
     return card and getTexture(card.texture) or nil
 end
 
--- the card at its own size, for the spread window.
 LDArcana.BACK_PANEL = "media/ui/LDArcana/Tarot_Back.png"
 
 function LDArcana.cardPanel(id)
@@ -182,19 +177,8 @@ function LDArcana.positionName(position)
     return LDCore.text("IGUI_LD_Position_" .. tostring(position), LDArcana.POSITION_NAMES[position] or tostring(position))
 end
 
--- attaches a card's design to the registered card:
---
---   LDArcana.define("EMPEROR", {
---       area = "Power", theme = "Authority, force, dominance",
---       stats = { "minDamage", "maxDamage", "knockback" },
---       present = { title = "Force", text = "Everything goes into this strike.",
---                   mods = { maxDamage = 2, knockback = 1, baseSpeed = -1 } },
---   })
---
--- mods are arrow counts from the design: 1 is an up arrow, 2 a double, -1 a down. they read
--- in the stat's own direction, so weight = -1 is lighter. a slot can also hold a function
--- named after an EFFECT_HOOKS entry for anything mods can't say. calling define twice for a
--- card adds to what's there.
+-- attaches a card's design to the registered card. calling define twice for a card adds
+-- to what's there. the format a card is written in is documented in design.md.
 function LDArcana.define(id, effects)
     local card = LDArcana.card(id)
     if not card then
@@ -246,10 +230,6 @@ function LDArcana.slotIsEmpty(card, position)
 
     return true
 end
-
--- ---------------------------------------------------------------------------------------
--- mods
--- ---------------------------------------------------------------------------------------
 
 -- one arrow's worth of a stat, added onto stats. from is what a pct step is a share of:
 -- the weapon after its rarity roll but before any card, so the slots don't stack on

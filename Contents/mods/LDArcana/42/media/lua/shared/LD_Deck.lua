@@ -58,7 +58,6 @@ function LDDeck.drawId()
     return active[ZombRand(#active) + 1]
 end
 
--- the card's name over the player's head, then the deck going.
 function LDDeck.announce(player, cardId)
     if not HaloTextHelper or not player then return end
 

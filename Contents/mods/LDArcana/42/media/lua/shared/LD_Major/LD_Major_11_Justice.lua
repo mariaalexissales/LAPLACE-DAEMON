@@ -6,7 +6,7 @@ require "LD_Arcana"
 
 -- XI - Justice. Balance.
 -- stats from the design: Min Damage, Max Damage, Crit Chance.
--- no effects yet. see LD_Major_00_Fool.lua for the format, then uncomment the slots.
+-- no effects yet.
 
 LDArcana.define("JUSTICE", {
     area = "Balance",

@@ -39,10 +39,6 @@ local function LD_fit(text, width)
     return text .. "..."
 end
 
--- ---------------------------------------------------------------------------------------
--- slot
--- ---------------------------------------------------------------------------------------
-
 LD_SpreadSlot = ISButton:derive("LD_SpreadSlot")
 
 function LD_SpreadSlot:new(x, y, width, height, window, position)
@@ -224,7 +220,6 @@ function LD_SpreadWindow:prerender()
     local data = LDItem.get(self.weapon)
     if not data or not self.stats then return end
 
-    -- stats readout, two columns.
     local y = self.statsY
     local rarity = LDCore.rarity(data.rarity)
     local colour = rarity and rarity.color or { 220, 220, 220 }
@@ -260,10 +255,6 @@ function LD_SpreadWindow:prerender()
         self:drawTextRight(line[2], x + columnWidth - GAP, lineY, 0.88, 0.88, 0.88, 1, UIFont.Small)
     end
 end
-
--- ---------------------------------------------------------------------------------------
--- text
--- ---------------------------------------------------------------------------------------
 
 local function LD_colour(good)
     return good and " <RGB:0.55,0.85,0.55> " or " <RGB:0.9,0.5,0.5> "

@@ -7,9 +7,6 @@ require "LD_Item"
 require "Entity/TimedActions/ISHandcraftAction"
 
 -- recipe name -> role.
---   forge: roll a fresh rarity onto what it makes.
---   carry: copy the roll from what it uses up onto what it makes. never rolls again, so
---          dismantling and reassembling can't be used to reroll.
 LDCore.Recipes = {
     Forge_Crude_Blade            = "forge",
     Forge_Small_Knife            = "forge",
@@ -28,9 +25,6 @@ LDCore.Recipes = {
 
     -- blades only for now. spear heads would lose the roll going on a shaft, and the meat
     -- cleaver is an axe to the game.
-    -- ForgeSpearHead            = "forge",
-    -- ForgeLongSpearHead        = "forge",
-    -- Forge_Meat_Cleaver_Blade  = "forge",
 
     AssembleBlade                = "carry",
     DismantleBlade               = "carry",
@@ -109,14 +103,12 @@ function LDCore.CraftHandlers.carry(craftRecipeData, character)
     end
 end
 
--- ---------------------------------------------------------------------------------------
 -- there's no craft event, and every handcraft ends in ISHandcraftAction:performRecipe. the
 -- original adds the outputs and processes the used inputs; getAllConsumedItems still lists
 -- them afterwards (vanilla reads it there too), so the blade's data is still readable.
 --
 -- multiplayer: this runs on the server after the outputs were already handed to the client,
 -- so the data will need syncing (syncItemModData / syncItemFields) before MP is supported.
--- ---------------------------------------------------------------------------------------
 
 -- kept on LDCore so reloading this file in debug doesn't wrap the wrap.
 LDCore.originalPerformRecipe = LDCore.originalPerformRecipe or ISHandcraftAction.performRecipe

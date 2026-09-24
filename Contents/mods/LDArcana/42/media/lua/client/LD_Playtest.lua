@@ -99,8 +99,6 @@ local function LD_tally(level, rolls)
     return counts, table.concat(parts, ", ")
 end
 
--- ---------------------------------------------------------------------------------------
-
 function LDPlaytest.run(player)
     player = player or getSpecificPlayer(0)
     if not player then

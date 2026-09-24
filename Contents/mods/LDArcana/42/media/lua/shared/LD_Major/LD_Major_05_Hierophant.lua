@@ -8,7 +8,7 @@ require "LD_Arcana"
 -- stats from the design: Max Condition, Condition Lower Chance.
 -- the design also lists Head Condition. there's no setter for a head's maximum, and no
 -- blade has a head, so it isn't a stat this mod can move.
--- no effects yet. see LD_Major_00_Fool.lua for the format, then uncomment the slots.
+-- no effects yet.
 
 LDArcana.define("HIEROPHANT", {
     area = "Durability",

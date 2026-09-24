@@ -7,13 +7,6 @@ require "LD_Rarities"
 
 LDItem = LDItem or {}
 
--- ---------------------------------------------------------------------------------------
--- data. an item's LD data is one modData table:
---   { v = 1, rarity = "RARE", pct = 137, level = 6, arcana = { past = "TOWER" } }
--- core only reads v, rarity, pct and level. anything else in there (arcana) is carried along
--- untouched whenever core copies the table.
--- ---------------------------------------------------------------------------------------
-
 local function LD_copyTable(source)
     local out = {}
     for key, value in pairs(source) do
@@ -78,10 +71,6 @@ function LDItem.isRollable(item)
     return item:isSharpenable()
 end
 
--- ---------------------------------------------------------------------------------------
--- rolls
--- ---------------------------------------------------------------------------------------
-
 -- a copy, so hooks can change it freely. a level with no row uses the nearest row below.
 function LDItem.weightsFor(level)
     local rows = LDCore.RarityWeights
@@ -124,7 +113,6 @@ function LDItem.rollPct(rarityId)
     return low + ZombRand(high - low + 1)
 end
 
--- LDItem.simulate(10, 1000) in the debug console, for tuning RarityWeights.
 function LDItem.simulate(level, n)
     n = n or 1000
     local weights = LDItem.weightsFor(level)
@@ -144,10 +132,8 @@ function LDItem.simulate(level, n)
     return counts
 end
 
--- ---------------------------------------------------------------------------------------
 -- stats. always rebuilt from the vanilla base, never from the item's current numbers, so
 -- refresh can run on every equip and load without stacking.
--- ---------------------------------------------------------------------------------------
 
 -- a card coming out can lower the ceiling under the condition the weapon already has.
 local function LD_writeConditionMax(item, value)
@@ -161,12 +147,6 @@ local function LD_writeWeight(item, value)
     item:setCustomWeight(true)
 end
 
--- stat -> where it is read and written, and what it may be set to.
---   scales:  multiplied by the rolled damage pct.
---   int:     whole numbers only; the setter takes an int.
---   min/max: clamped after the hooks have had their say.
---   write:   a setter that needs more than one call.
--- everything here is open to the item.stats hook, which is how arcana cards move a weapon.
 -- head condition is deliberately absent: there's no setter for its maximum, and no blade has
 -- a head to begin with.
 LDItem.STATS = {
@@ -339,7 +319,6 @@ function LDItem.stamp(item, data)
     LDItem.refresh(item)
 end
 
--- one line per field, nested tables indented. for the debug inspect.
 function LDItem.describe(value, indent, out)
     indent = indent or ""
     out = out or {}

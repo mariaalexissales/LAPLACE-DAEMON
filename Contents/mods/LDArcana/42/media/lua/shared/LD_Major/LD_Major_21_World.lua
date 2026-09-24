@@ -8,7 +8,7 @@ require "LD_Arcana"
 -- stats from the design: Min Damage, Max Damage, Crit Chance, Attack Speed, Max Range, Max Condition.
 -- the design asks for all five areas at once: damage, precision, tempo, reach and
 -- durability. a little of each reads better here than a lot of any one.
--- no effects yet. see LD_Major_00_Fool.lua for the format, then uncomment the slots.
+-- no effects yet.
 
 LDArcana.define("WORLD", {
     area = "Mastery",

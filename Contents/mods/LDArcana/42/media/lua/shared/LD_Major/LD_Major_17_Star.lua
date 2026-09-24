@@ -6,7 +6,7 @@ require "LD_Arcana"
 
 -- XVII - The Star. Reach / Precision.
 -- stats from the design: Max Range, Crit Chance, Min Range.
--- no effects yet. see LD_Major_00_Fool.lua for the format, then uncomment the slots.
+-- no effects yet.
 
 LDArcana.define("STAR", {
     area = "Reach / Precision",

@@ -6,7 +6,7 @@ require "LD_Arcana"
 
 -- XX - Judgement. Precision / Power.
 -- stats from the design: Crit Chance, Crit Multiplier, Max Damage.
--- no effects yet. see LD_Major_00_Fool.lua for the format, then uncomment the slots.
+-- no effects yet.
 
 LDArcana.define("JUDGEMENT", {
     area = "Precision / Power",

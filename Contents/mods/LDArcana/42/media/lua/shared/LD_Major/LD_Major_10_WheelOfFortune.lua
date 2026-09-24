@@ -6,7 +6,7 @@ require "LD_Arcana"
 
 -- X - Wheel of Fortune. Precision.
 -- stats from the design: Crit Chance, Crit Multiplier.
--- no effects yet. see LD_Major_00_Fool.lua for the format, then uncomment the slots.
+-- no effects yet.
 
 LDArcana.define("WHEEL_OF_FORTUNE", {
     area = "Precision",

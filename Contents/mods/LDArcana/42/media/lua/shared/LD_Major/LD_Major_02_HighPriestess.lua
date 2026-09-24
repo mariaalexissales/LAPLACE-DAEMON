@@ -6,7 +6,7 @@ require "LD_Arcana"
 
 -- II - The High Priestess. Precision.
 -- stats from the design: Crit Chance, Crit Multiplier, Min Range.
--- no effects yet. see LD_Major_00_Fool.lua for the format, then uncomment the slots.
+-- no effects yet.
 
 LDArcana.define("HIGH_PRIESTESS", {
     area = "Precision",

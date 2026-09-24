@@ -6,7 +6,7 @@ require "LD_Arcana"
 
 -- III - The Empress. Durability.
 -- stats from the design: Max Condition, Average Condition, Condition Lower Chance.
--- no effects yet. see LD_Major_00_Fool.lua for the format, then uncomment the slots.
+-- no effects yet.
 
 LDArcana.define("EMPRESS", {
     area = "Durability",

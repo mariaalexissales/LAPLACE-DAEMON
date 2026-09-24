@@ -6,7 +6,7 @@ require "LD_Arcana"
 
 -- XVI - The Tower. Power.
 -- stats from the design: Max Damage, Knockback, Crit Multiplier.
--- no effects yet. see LD_Major_00_Fool.lua for the format, then uncomment the slots.
+-- no effects yet.
 
 LDArcana.define("TOWER", {
     area = "Power",

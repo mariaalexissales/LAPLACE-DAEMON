@@ -6,7 +6,7 @@ require "LD_Arcana"
 
 -- XVIII - The Moon. Reach / Precision.
 -- stats from the design: Min Range, Max Range, Crit Chance.
--- no effects yet. see LD_Major_00_Fool.lua for the format, then uncomment the slots.
+-- no effects yet.
 
 LDArcana.define("MOON", {
     area = "Reach / Precision",
