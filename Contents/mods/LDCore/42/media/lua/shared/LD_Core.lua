@@ -6,6 +6,9 @@ LDCore = LDCore or {}
 
 LDCore.MOD_ID = "LDCore"
 
+-- the module string on every packet between the two sides.
+LDCore.MODULE = "LD"
+
 -- everything the mod keeps on an item lives under this one modData key.
 LDCore.DATA_KEY = "LD"
 LDCore.DATA_VERSION = 1
@@ -13,6 +16,33 @@ LDCore.DATA_VERSION = 1
 -- server/ lua loads on multiplayer clients too, and isServer() is false in singleplayer.
 function LDCore.isAuthority()
     return not (isClient() and not isServer())
+end
+
+function LDCore.hasRemoteServer()
+    return isClient() and not isServer()
+end
+
+-- the engine ships both spellings -- Role.class has Admin/GM/Moderator, Roles.class has
+-- lowercase, and vanilla compares the lowercase one. normalising stops a case-sensitive test
+-- being a coin flip.
+function LDCore.accessLevel(player)
+    if not player then return "none" end
+
+    local level = player:getAccessLevel()
+    if not level or level == "" then return "none" end
+
+    return string.lower(level)
+end
+
+-- the question is "is there no multiplayer at all", which is both flags off. asking for a
+-- remote server instead is false in the server process too, so on a dedicated server that
+-- hands admin to everybody.
+function LDCore.isAdmin(player)
+    if not isClient() and not isServer() then return true end
+    if not player then return false end
+
+    local level = LDCore.accessLevel(player)
+    return level == "admin" or level == "gm" or level == "moderator"
 end
 
 function LDCore.log(message)
