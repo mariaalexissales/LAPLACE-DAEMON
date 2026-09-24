@@ -4,6 +4,7 @@
 
 require "TimedActions/ISBaseTimedAction"
 require "LD_Core"
+require "LD_Net"
 require "LD_Arcana"
 require "LD_Deck"
 
@@ -27,28 +28,18 @@ function LD_DrawCardAction:stop()
     ISBaseTimedAction.stop(self)
 end
 
+-- perform() is the client's half of a timed action: the server only ever gets complete(). the
+-- deck goes by id and the card that comes off it is picked server-side, so nobody deals
+-- themselves a fortune.
 function LD_DrawCardAction:perform()
+    LD_Net.toServer("draw", { deck = self.deck:getID() })
+
     -- needed to remove from queue / start next.
     ISBaseTimedAction.perform(self)
 end
 
+-- nothing here: the server draws the card and sends back the name to put over your head.
 function LD_DrawCardAction:complete()
-    local cardId = LDDeck.drawId()
-    local card = LDArcana.card(cardId)
-    if not card then return true end
-
-    local inventory = self.character:getInventory()
-    local container = self.deck:getContainer() or inventory
-    container:Remove(self.deck)
-    if isServer() then sendRemoveItemFromContainer(container, self.deck) end
-
-    local drawn = inventory:AddItem(card.itemType)
-    if drawn and isServer() then sendAddItemToContainer(inventory, drawn) end
-
-    -- halo text is the client's to show, and in single player this is the client. a
-    -- multiplayer server would need to send it over, which isn't done yet.
-    if not isServer() then LDDeck.announce(self.character, cardId) end
-
     return true
 end
 

@@ -4,6 +4,7 @@
 
 require "TimedActions/ISBaseTimedAction"
 require "LD_Core"
+require "LD_Net"
 require "LD_Item"
 require "LD_Arcana"
 require "LD_Spread"
@@ -11,6 +12,9 @@ require "LD_Spread"
 -- puts a card from the inventory into one of a weapon's slots, or takes the one that's in
 -- there back out. cardItem nil means take it out. a card that gets replaced or removed goes
 -- back to the player, so nothing is ever destroyed by socketing.
+--
+-- the checks below are what stops the menu offering something silly. the server makes them
+-- again on its own copy of the inventory, because this side can be lied to.
 LD_SocketCardAction = ISBaseTimedAction:derive("LD_SocketCardAction")
 
 function LD_SocketCardAction:isValid()
@@ -44,46 +48,22 @@ function LD_SocketCardAction:stop()
     ISBaseTimedAction.stop(self)
 end
 
+-- perform() is the client's half of a timed action: the server only ever gets complete(). so
+-- the ask goes out from here, and in singleplayer the send is a direct call into the same
+-- handler. ids only -- which card that is and whether it is held is the server's to work out.
 function LD_SocketCardAction:perform()
-    -- complete() and perform() can run either way round depending on the build, so the
-    -- window is told from both. refreshing twice costs nothing.
-    if LD_SpreadWindow then LD_SpreadWindow.refreshAll() end
+    LD_Net.toServer("socket", {
+        weapon = self.weapon:getID(),
+        position = self.position,
+        card = self.cardItem and self.cardItem:getID() or nil,
+    })
 
     -- needed to remove from queue / start next.
     ISBaseTimedAction.perform(self)
 end
 
+-- nothing here: the server did the work, and the window is refreshed by its reply.
 function LD_SocketCardAction:complete()
-    local inventory = self.character:getInventory()
-    local giveBack = nil
-
-    if self.cardItem then
-        local socketed, replaced = LDSpread.socket(self.weapon, self.position, LDArcana.CardByItem[self.cardItem:getFullType()])
-        if not socketed then return true end
-
-        local container = self.cardItem:getContainer() or inventory
-        container:Remove(self.cardItem)
-        if isServer() then sendRemoveItemFromContainer(container, self.cardItem) end
-
-        giveBack = replaced
-    else
-        giveBack = LDSpread.unsocket(self.weapon, self.position)
-    end
-
-    -- a switched-off card has no item to hand back; it only leaves the slot.
-    local card = LDArcana.isActive(giveBack) and LDArcana.card(giveBack)
-    if card then
-        local returned = inventory:AddItem(card.itemType)
-        if returned and isServer() then sendAddItemToContainer(inventory, returned) end
-    end
-
-    if isServer() then
-        syncItemModData(self.character, self.weapon)
-        syncItemFields(self.character, self.weapon)
-    end
-
-    if LD_SpreadWindow then LD_SpreadWindow.refreshAll() end
-
     return true
 end
 

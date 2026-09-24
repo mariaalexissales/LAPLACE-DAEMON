@@ -3,6 +3,8 @@
 ----------
 
 require "LD_Core"
+require "LD_Net"
+require "LD_DebugMenu"
 require "LD_Item"
 require "LD_Craft"
 require "LD_Arcana"
@@ -27,6 +29,20 @@ local EPSILON = 0.01
 local SMITH_LEVEL = 9
 
 local results = nil
+
+-- the actions only ask now, and the work is the server's. with no remote server LD_Net
+-- runs the handler on the spot, so these drive the same path a client's click does.
+local function LD_socket(weapon, position, cardItem)
+    LD_Net.toServer("socket", {
+        weapon = weapon:getID(),
+        position = position,
+        card = cardItem and cardItem:getID() or nil,
+    })
+end
+
+local function LD_draw(deck)
+    LD_Net.toServer("draw", { deck = deck:getID() })
+end
 
 local function LD_check(name, ok, detail)
     if ok then
@@ -223,7 +239,7 @@ function LDPlaytest.run(player)
         local deck = inventory:AddItem(LDDeck.TYPE)
         local draw = LD_DrawCardAction:new(player, deck)
         LD_check("a carried deck can be drawn from", draw:isValid())
-        draw:complete()
+        LD_draw(deck)
 
         LD_check("the deck is gone after the draw", not inventory:containsRecursive(deck))
 
@@ -262,7 +278,7 @@ function LDPlaytest.run(player)
 
         local socket = LD_SocketCardAction:new(player, sword, "present", emperor)
         LD_check("socketing it is allowed", socket:isValid())
-        socket:complete()
+        LD_socket(sword, "present", emperor)
 
         LD_check("the card left the inventory", not inventory:containsRecursive(emperor))
         LD_check("the Emperor sits in Present", (LDSpread.get(sword) or {}).present == "EMPEROR")
@@ -276,12 +292,12 @@ function LDPlaytest.run(player)
         LD_check("a switched-off card can't be socketed", not LDSpread.socket(sword, "past", "FOOL"))
 
         local emperors = LD_count(inventory, LDArcana.card("EMPEROR").itemType)
-        LD_SocketCardAction:new(player, sword, "present", chariot):complete()
+        LD_socket(sword, "present", chariot)
         LD_check("the Chariot replaced it", LDSpread.get(sword).present == "CHARIOT")
         LD_check("and the Emperor came back", LD_count(inventory, LDArcana.card("EMPEROR").itemType) == emperors + 1)
 
-        LD_SocketCardAction:new(player, sword, "past", death):complete()
-        LD_SocketCardAction:new(player, sword, "future", temperance):complete()
+        LD_socket(sword, "past", death)
+        LD_socket(sword, "future", temperance)
         local spread = LDSpread.get(sword)
         LD_check("all three slots are filled",
             spread.past == "DEATH" and spread.present == "CHARIOT" and spread.future == "TEMPERANCE")
@@ -301,14 +317,14 @@ function LDPlaytest.run(player)
         LD_check("refreshing twice changes nothing", same)
 
         local temperances = LD_count(inventory, LDArcana.card("TEMPERANCE").itemType)
-        LD_SocketCardAction:new(player, sword, "future", nil):complete()
+        LD_socket(sword, "future", nil)
         LD_check("Temperance came back out",
             LDSpread.get(sword).future == nil
                 and LD_count(inventory, LDArcana.card("TEMPERANCE").itemType) == temperances + 1)
 
         -- Death in Past raised max condition. fill it to the top, then take Death out.
         sword:setCondition(sword:getConditionMax())
-        LD_SocketCardAction:new(player, sword, "past", nil):complete()
+        LD_socket(sword, "past", nil)
         LD_check("condition never sits above the max", sword:getCondition() <= sword:getConditionMax(),
             sword:getCondition() .. " / " .. sword:getConditionMax())
     end)
@@ -335,10 +351,10 @@ function LDPlaytest.run(player)
 end
 
 local function LD_onFillWorldObjectContextMenu(playerNum, context, worldObjects, test)
-    if test or not isDebugEnabled() then return end
+    if test then return end
 
     local player = getSpecificPlayer(playerNum)
-    if not player then return end
+    if not player or not LD_DebugMenu.allowed(player) then return end
 
     context:addOption("LD: Run Playtest", player, LDPlaytest.run)
 end

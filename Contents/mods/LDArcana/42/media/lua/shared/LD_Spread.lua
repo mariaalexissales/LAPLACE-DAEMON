@@ -42,7 +42,7 @@ end
 
 -- puts a card in a slot and hands back the id of the one it replaced, so the caller can
 -- give that card back. false means it didn't go in.
-function LDSpread.socket(item, position, cardId)
+function LDSpread.socket(item, position, cardId, player)
     if not LDArcana.IS_POSITION[position] then
         LDCore.warn("socket: no position " .. tostring(position))
         return false
@@ -61,19 +61,19 @@ function LDSpread.socket(item, position, cardId)
     data.arcana = data.arcana or {}
     local replaced = data.arcana[position]
     data.arcana[position] = cardId
-    LDItem.refresh(item)
+    LDItem.changed(item, player)
 
     return true, replaced
 end
 
 -- returns the id that was in the slot, so a physical card can be handed back.
-function LDSpread.unsocket(item, position)
+function LDSpread.unsocket(item, position, player)
     local spread = LDSpread.get(item)
     local cardId = spread and spread[position]
     if not cardId then return nil end
 
     spread[position] = nil
-    LDItem.refresh(item)
+    LDItem.changed(item, player)
     return cardId
 end
 
