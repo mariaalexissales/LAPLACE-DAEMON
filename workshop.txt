@@ -61,10 +61,6 @@ description=[*] [b]The numbers are a first pass.[/b] Rarity odds, damage ranges,
 description=[/list]
 description=
 description=[hr][/hr]
-description=[h2]Credits[/h2]
-description=Tarot card art is the [b]Tarot Cards [Free][/b] pack by [b][ARTIST NAME + LINK HERE][/b]. Go have a look at their work!
-description=
-description=[hr][/hr]
 description=[h2]Support the Mod[/h2]
 description=If this made firing up the forge worth it again, consider supporting me below~! Would love for more of y'all to watch me debug the code live, or just hang out :D
 description=[url=https://ko-fi.com/estralexe]Ko-fi[/url]
