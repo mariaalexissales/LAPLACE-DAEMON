@@ -12,8 +12,8 @@ Two mods, because the rarities stand on their own. Needs **42.20+**.
 | LAPLACE//DAEMON Core | `LDCore` | nothing |
 | LAPLACE//DAEMON Arcana | `LDArcana` | `LDCore` |
 
-Singleplayer for now. The craft hook runs server-side after the outputs have already reached
-the client, so the roll needs syncing before this is safe on a server.
+Works the same in singleplayer and on a dedicated server. The server decides every roll and
+owns every item change; see [Multiplayer](#multiplayer).
 
 ## The art
 
@@ -41,6 +41,34 @@ refresh on every equip and load can't stack. The same pure function computes the
 the socket menu previews a card it hasn't socketed and cannot drift from what the setters write.
 
 The rest is in [design.md](design.md), including the format for writing a card.
+
+## Multiplayer
+
+**Server-authoritative.** The client sends intent, never outcomes.
+
+Crafting was already in the right place: vanilla runs `performRecipe` behind `if not
+isClient()` in `perform()` and `if isServer()` in `complete()`, so the forge wrap only ever
+runs on the server and a client cannot reach the rarity roll. What the mod adds is the push
+afterwards, because the outputs reach the client before the stamp lands.
+
+Socketing and drawing used to happen in the timed action, on the client, which meant a
+modified client could deal itself any card. Now the action only animates and then asks. It
+sends **item ids and nothing else**, and the server looks those ids up in its own copy of
+that player's inventory, so a crafted packet cannot name a card you are not carrying. Which
+card comes off a deck is the server's roll too.
+
+**Stats can't travel, and don't need to.** `conditionMax` and `customWeight` appear in no
+packet the game sends - only `moddata`, `condition`, `actualWeight`, the custom name and a
+weapon's min/max damage do. So what crosses the wire is the one `LD` modData table, and every
+machine rebuilds its own numbers off it. `LDItem.computeStats` was already written that way,
+deriving everything from the vanilla base plus the roll, so nothing had to change to suit it.
+
+`LD_Net` bridges both worlds. With no remote server the send is a direct call into the handler
+that would have received it, so **singleplayer runs the same authoritative code a server
+does** - which is also why the playtest can exercise it without a server.
+
+Debug menus are admin-only once there is a server, and the commands behind them check again,
+because the client is the one drawing the button.
 
 ## Generated files
 

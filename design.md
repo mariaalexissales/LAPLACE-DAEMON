@@ -4,12 +4,15 @@ LAPLACE//DAEMON
 │ ├── actiongroups/, AnimSets/   placeholders so a dedicated server's media scan finds them
 │ └── lua/
 │   ├── shared/
-│   │ ├── LD_Core.lua        namespace, text helper, hook bus (LDCore.HOOK, LDCore.Hooks)
+│   │ ├── LD_Core.lua        namespace, text helper, authority, hook bus (LDCore.HOOK)
+│   │ ├── LD_Net.lua         toServer / toClient / toAll, and the singleplayer bridge
 │   │ ├── LD_Rarities.lua    rarity table, damage pct ranges, weights per Blacksmith level
-│   │ ├── LD_Item.lua        item data, rolls, stats and name (the RPG item layer)
+│   │ ├── LD_Item.lua        item data, rolls, stats, name and sync (the RPG item layer)
 │   │ ├── LD_Craft.lua       recipe roles (forge / carry), handcraft wrap
 │   │ ├── LD_Events.lua      equip, load and hit events -> hooks
 │   │ └── Translate/EN/IG_UI.json   rarity and stat names
+│   ├── server/
+│   │ └── LD_Commands.lua    the command dispatcher, inventory helpers, rate limits
 │   └── client/
 │     └── LD_DebugMenu.lua   debug: inspect, stamp as rarity
 │
@@ -28,9 +31,11 @@ LAPLACE//DAEMON
 │   │ ├── TimedActions/      LD_SocketCardAction (card in / out), LD_DrawCardAction
 │   │ └── Translate/EN/      ItemName.json GENERATED, plus IG_UI.json and ContextMenu.json
 │   ├── server/
+│   │ ├── LD_ArcanaCommands.lua  socket, draw and the debug spread
 │   │ ├── LD_DeckLoot.lua    the deck in the extra loot tables
 │   │ └── LD_DeckDrops.lua   the deck on zombies
 │   └── client/
+│     ├── LD_ClientState.lua      the server's replies: halo text, window refresh
 │     ├── LD_SpreadWindow.lua     the three slots, previews, socket menu
 │     ├── LD_SpreadMenu.lua       inventory right-click -> Tarot Spread
 │     ├── LD_DeckMenu.lua         inventory right-click on a deck -> Draw a Card
@@ -148,6 +153,34 @@ The vanilla Tarot Card Deck. Right-click it, Draw a Card: you pull from the top 
 and the rest of it goes, as if the universe took it back. One random active card, and the deck
 is gone. The deck spawns where vanilla puts it, plus the extra tables and the zombie drop
 chance in `LDDeck.LOOT` (`LD_Deck.lua`).
+
+# Multiplayer
+
+The client sends intent, never outcomes. `LD_Net` (`shared/LD_Net.lua`) carries it, and with no
+remote server the send is a direct call into the handler that would have received it, so
+singleplayer runs the same authoritative code a server does.
+
+| command | from | what the server does with it |
+|---------|------|------------------------------|
+| `socket` | the socket action's `perform()` | looks the weapon and card ids up in its own copy of that player's inventory, checks the slot rules, moves the card |
+| `draw`   | the draw action's `perform()`   | checks the deck is held, picks the card itself, takes the deck, gives the card |
+| `stamp`  | debug menu                      | admin only; stamps a chosen rarity |
+| `spread` | debug menu                      | admin only; sockets by card id with no card item changing hands |
+| `refused` / `socketed` / `drawn` | the server | the reply: halo text and a window refresh |
+
+An id off the wire is only ever a key into the server's own inventory scan
+(`LD_Commands.heldItem`), never something acted on directly. Rate limits are runtime only and
+skipped when there is no wire to flood.
+
+Crafting needed none of this. Vanilla gates `performRecipe` behind `if not isClient()` in
+`perform()` and `if isServer()` in `complete()`, so the forge wrap already only runs on the
+server. What it gained is the sync afterwards, because the outputs reach the client first.
+
+`conditionMax` and `customWeight` are in no packet the game sends, so the numbers cannot
+travel. `LDItem.sync` pushes the `LD` modData table and each machine rebuilds its own stats off
+it — which is what `computeStats` already did. Socketing writes into `data.arcana` in place
+rather than through `LDItem.set`, so it goes back through `LDItem.changed` or it would never
+leave the machine that did it.
 
 # Scope
 Blades only: weapons the game files as long blade or small blade, and the blades that go on
