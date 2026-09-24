@@ -110,3 +110,12 @@ In singleplayer with `-debug`, right-click the ground and pick **LD: Run Playtes
 from a deck, forges a blade, puts it on a handle and takes it off, sockets cards, and checks
 each step, printing one `[LD TEST]` line per check to `console.txt` and cleaning up every item
 it made. It can't cover the crafting window itself, anything visual, or save and reload.
+
+Because the net layer runs the same handlers with no remote server, that covers the multiplayer
+code paths too — but not the wire. For that there is a local test server in
+[estral-tools](https://github.com/mariaalexissales/estral-tools):
+
+```powershell
+.\servers\serve.ps1 -Server ldtest
+.\servers\client.ps1           # and -Second for a second player
+```
