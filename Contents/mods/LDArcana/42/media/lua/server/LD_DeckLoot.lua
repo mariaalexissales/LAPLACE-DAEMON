@@ -6,6 +6,8 @@ require "Items/ProceduralDistributions"
 require "LD_Core"
 require "LD_Deck"
 
+if not LDCore.isAuthority() then return end
+
 local ProceduralDistributions_list = ProceduralDistributions.list
 local table_insert = table.insert
 
