@@ -3,9 +3,18 @@
 ----------
 
 require "LD_Core"
+require "LD_Net"
 require "LD_Item"
 
 LD_DebugMenu = LD_DebugMenu or {}
+
+-- debug mode is a switch on the client, which is nobody's business but their own in
+-- singleplayer and everybody's on a server. the commands behind these options check again,
+-- because this side is the one drawing the button.
+function LD_DebugMenu.allowed(player)
+    if not isDebugEnabled() then return false end
+    return not LDCore.hasRemoteServer() or LDCore.isAdmin(player)
+end
 
 -- the menu hands back bare items for singles and { items = {...} } for stacks, where the
 -- first entry repeats the second.
@@ -41,18 +50,17 @@ function LD_DebugMenu.inspect(item)
     end
 end
 
--- stamps a chosen rarity without going near a forge, for testing names, stats and cards.
+-- stamps a chosen rarity without going near a forge, for testing names, stats and cards. the
+-- roll is the server's like any other, so Inspect afterwards rather than expecting this to
+-- have landed by the time the menu closes.
 function LD_DebugMenu.stamp(item, rarityId, player)
     local level = player and player:getPerkLevel(Perks.Blacksmith) or 0
-    LDItem.stamp(item, LDItem.newData(rarityId, LDItem.rollPct(rarityId), level))
-    LD_DebugMenu.inspect(item)
+    LD_Net.toServer("stamp", { item = item:getID(), rarity = rarityId, level = level })
 end
 
 local function LD_onFillInventoryObjectContextMenu(playerNum, context, items)
-    if not isDebugEnabled() then return end
-
     local player = getSpecificPlayer(playerNum)
-    if not player then return end
+    if not player or not LD_DebugMenu.allowed(player) then return end
 
     local item = nil
     for _, entry in ipairs(LD_DebugMenu.flatten(items)) do

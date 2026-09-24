@@ -3,6 +3,7 @@
 ----------
 
 require "LD_Core"
+require "LD_Net"
 require "LD_Item"
 require "LD_Arcana"
 require "LD_Spread"
@@ -10,16 +11,19 @@ require "LD_DebugMenu"
 
 LD_ArcanaDebugMenu = LD_ArcanaDebugMenu or {}
 
+-- no card item changes hands here, which is the whole point of it and also why the command
+-- behind it is admin-only.
 function LD_ArcanaDebugMenu.socket(item, position, cardId)
-    if LDSpread.socket(item, position, cardId) then LD_DebugMenu.inspect(item) end
+    LD_Net.toServer("spread", { weapon = item:getID(), position = position, card = cardId })
 end
 
 function LD_ArcanaDebugMenu.unsocket(item, position)
-    if LDSpread.unsocket(item, position) then LD_DebugMenu.inspect(item) end
+    LD_Net.toServer("spread", { weapon = item:getID(), position = position })
 end
 
 local function LD_onFillInventoryObjectContextMenu(playerNum, context, items)
-    if not isDebugEnabled() then return end
+    local player = getSpecificPlayer(playerNum)
+    if not player or not LD_DebugMenu.allowed(player) then return end
 
     local item = nil
     for _, entry in ipairs(LD_DebugMenu.flatten(items)) do
