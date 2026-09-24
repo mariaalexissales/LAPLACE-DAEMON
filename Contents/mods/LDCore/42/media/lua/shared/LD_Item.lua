@@ -314,6 +314,25 @@ function LDItem.refresh(item)
     LDItem.applyStats(item)
 end
 
+-- conditionMax and customWeight are in no packet the game sends, so those numbers cannot
+-- travel. what travels is the LD table, and every machine rebuilds its own stats off it.
+function LDItem.sync(player, item)
+    if not isServer() or not item then return end
+
+    if player then syncItemModData(player, item) end
+    item:syncItemFields()
+
+    if player and instanceof(item, "HandWeapon") then syncHandWeaponFields(player, item) end
+end
+
+-- the one place that says an item's LD data moved. socketing writes into the table in place
+-- rather than through LDItem.set, so it has to come back through here or it never leaves the
+-- machine that did it.
+function LDItem.changed(item, player)
+    LDItem.refresh(item)
+    LDItem.sync(player, item)
+end
+
 function LDItem.stamp(item, data)
     LDItem.set(item, data)
     LDItem.refresh(item)

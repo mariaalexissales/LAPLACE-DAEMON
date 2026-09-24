@@ -77,6 +77,7 @@ function LDCore.CraftHandlers.forge(craftRecipeData, character, recipe)
             })
 
             LDItem.stamp(item, rolled.data)
+            LDItem.sync(character, item)
             LDCore.log("forged " .. item:getFullType() .. " at blacksmith " .. level
                 .. ": " .. tostring(rolled.data.rarity) .. " " .. tostring(rolled.data.pct) .. "%")
         end
@@ -97,7 +98,7 @@ function LDCore.CraftHandlers.carry(craftRecipeData, character)
 
     for _, item in ipairs(LD_list(craftRecipeData:getAllCreatedItems())) do
         if LDItem.isRollable(item) and LDItem.copy(source, item) then
-            LDItem.refresh(item)
+            LDItem.changed(item, character)
             LDCore.log("carried " .. source:getFullType() .. " -> " .. item:getFullType())
         end
     end
@@ -107,8 +108,9 @@ end
 -- original adds the outputs and processes the used inputs; getAllConsumedItems still lists
 -- them afterwards (vanilla reads it there too), so the blade's data is still readable.
 --
--- multiplayer: this runs on the server after the outputs were already handed to the client,
--- so the data will need syncing (syncItemModData / syncItemFields) before MP is supported.
+-- multiplayer: perform() runs performRecipe behind "if not isClient()" and complete() behind
+-- "if isServer()", so this only ever runs on the server and a client can't reach the roll. the
+-- outputs reached the client before the stamp, which is what the sync in the handlers is for.
 
 -- kept on LDCore so reloading this file in debug doesn't wrap the wrap.
 LDCore.originalPerformRecipe = LDCore.originalPerformRecipe or ISHandcraftAction.performRecipe
