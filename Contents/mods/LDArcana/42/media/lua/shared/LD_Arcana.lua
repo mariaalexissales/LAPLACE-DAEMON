@@ -46,8 +46,8 @@ LDArcana.STEPS = {
 }
 
 -- the card items live in this script module, as Tarot_<id>, with icon Item_LD_Tarot_<id>.
--- build_tarot.ps1 writes the items, names and icons off the same ids, so a card added
--- here needs adding there too.
+-- build_tarot.py writes the items, names and icons off the same ids, reading them out of
+-- LD_MAJORS below, so a card added there only needs a re-run of the tool.
 LDArcana.ITEM_MODULE = "LDArcana"
 
 -- id -> { id, name, number, arcana, itemType, texture, past = {}, present = {}, future = {} }
@@ -110,7 +110,7 @@ for i, entry in ipairs(LD_MAJORS) do
 end
 
 -- the cards in play. the rest stay registered and keep their files, but have no item, never
--- come out of a deck and never show in a menu. build_tarot.ps1 reads this list to
+-- come out of a deck and never show in a menu. build_tarot.py reads this list to
 -- decide which items to write, so switching a card on means adding it here and re-running
 -- the tool.
 LDArcana.ACTIVE = { "EMPEROR", "CHARIOT", "DEATH", "TEMPERANCE" }

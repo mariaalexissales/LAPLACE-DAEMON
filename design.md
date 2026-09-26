@@ -42,7 +42,7 @@ LAPLACE//DAEMON
 │     ├── LD_Playtest.lua         debug: right-click the ground -> LD: Run Playtest
 │     └── LD_ArcanaDebugMenu.lua  debug: socket any card without owning it
 
-The generated files are baked by `build_tarot.ps1`, which lives in estral-tools rather than
+The generated files are baked by `build_tarot.py`, which lives in estral-tools rather than
 here, because it needs an art pack that is in no repo. See the README.
 
 # Core
@@ -106,7 +106,7 @@ Cards are items (`LDArcana.Tarot_<ID>`). Socketing takes one out of the inventor
 replacing one hands it back. The same card can only be on a weapon once.
 
 Only the cards in `LDArcana.ACTIVE` exist in play: Emperor, Chariot, Death, Temperance. The
-rest keep their files and art but have no item. `build_tarot.ps1` reads the list, so a card
+rest keep their files and art but have no item. `build_tarot.py` reads the list, so a card
 goes live by adding it there and re-running the tool.
 
 ## Writing a card

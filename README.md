@@ -91,18 +91,20 @@ re-running the tool, which reads that list rather than keeping its own copy.
 
 ## Build
 
-The generator is not in this repo. It lives in
-[estral-tools](https://github.com/mariaalexissales/estral-tools), cloned next to this folder,
-because it needs an art pack that is in no repo and so can't run for anyone who only has this.
-That is also why the baked output is committed rather than built on demand.
+The generator and the checks are not in this repo. They live in estral-tools, a private repo
+cloned next to this folder, one folder per mod. The generator needs an art pack that is in no
+repo, so it can't run for anyone who only has this, which is also why the baked output is
+committed rather than built on demand.
 
 ```bash
-powershell -ExecutionPolicy Bypass -File ../estral-tools/laplace-daemon/build_tarot.ps1
+python ../estral-tools/laplace-daemon/build_tarot.py
 ```
 
 Run it from this folder — it reads the mod out of the working directory and stops if it isn't
-there. Pass `-Source` if the pack isn't at `~/Downloads/Tarot Cards [Free].zip`. A card that is
-switched on with no art stops the run rather than shipping an item with a missing icon.
+there. Baking needs Pillow (`pip install Pillow`); pass `--source` if the pack isn't at
+`~/Downloads/Tarot Cards [Free].zip`. A card that is switched on with no art stops the run
+rather than shipping an item with a missing icon. `--check` needs neither the pack nor Pillow:
+it only says whether the item script and names are current and every active card has its art.
 
 ## Testing
 
@@ -112,10 +114,9 @@ each step, printing one `[LD TEST]` line per check to `console.txt` and cleaning
 it made. It can't cover the crafting window itself, anything visual, or save and reload.
 
 Because the net layer runs the same handlers with no remote server, that covers the multiplayer
-code paths too — but not the wire. For that there is a local test server in
-[estral-tools](https://github.com/mariaalexissales/estral-tools):
+code paths too — but not the wire. For that there is a local test server in estral-tools:
 
-```powershell
-.\servers\serve.ps1 -Server ldtest
-.\servers\client.ps1           # and -Second for a second player
+```bash
+python ../estral-tools/servers/serve.py --server ldtest
+python ../estral-tools/servers/client.py        # and --second for a second player
 ```

@@ -8,7 +8,7 @@ mod.info text eol=lf
 workshop.txt text eol=lf
 *.png binary
 
-# baked by build_tarot.ps1 in estral-tools. collapsed in diffs, not hidden.
+# baked by build_tarot.py in estral-tools. collapsed in diffs, not hidden.
 Contents/mods/LDArcana/42/media/scripts/LDA_items.txt linguist-generated=true
 Contents/mods/LDArcana/42/media/lua/shared/Translate/EN/ItemName.json linguist-generated=true
 Contents/mods/LDArcana/42/media/textures/** linguist-generated=true
