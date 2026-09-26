@@ -1,0 +1,77 @@
+name: checks
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: checks-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  generated-files:
+    name: generated files are current
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      # the generator lives in estral-tools, which is private, so this needs the
+      # read-only deploy key. it lands beside the mod rather than in it, and the
+      # scripts read the mod out of the working directory, not their own location.
+      - uses: actions/checkout@v4
+        with:
+          repository: mariaalexissales/estral-tools
+          ssh-key: ${{ secrets.ESTRAL_TOOLS_KEY }}
+          path: estral-tools
+          persist-credentials: false
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      # --check needs neither the art pack nor pillow, so there is nothing to install.
+      # it exits 1 and names the stale files, or the active cards with no art.
+      - name: items and names match LDArcana.ACTIVE
+        run: python estral-tools/laplace-daemon/build_tarot.py --check
+
+  mod-files:
+    name: mod files are valid
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - uses: actions/checkout@v4
+        with:
+          repository: mariaalexissales/estral-tools
+          ssh-key: ${{ secrets.ESTRAL_TOOLS_KEY }}
+          path: estral-tools
+          persist-credentials: false
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      # broken json and a missing name both fail silently in game: the label
+      # just renders as its raw key.
+      - name: every item and label has a name
+        run: python estral-tools/laplace-daemon/check_translations.py
+
+      - name: scripts only point at things that exist
+        run: python estral-tools/laplace-daemon/check_scripts.py
+
+      # a lua syntax error only shows up once the game loads the file.
+      - name: lua files parse
+        run: |
+          pip install --quiet luaparser==4.2.0
+          python estral-tools/laplace-daemon/check_lua.py
+
+      - name: nothing that ships is crlf
+        run: python estral-tools/laplace-daemon/check_line_endings.py

@@ -106,6 +106,31 @@ there. Baking needs Pillow (`pip install Pillow`); pass `--source` if the pack i
 rather than shipping an item with a missing icon. `--check` needs neither the pack nor Pillow:
 it only says whether the item script and names are current and every active card has its art.
 
+## Checks
+
+`.github/workflows/check.yml` runs these on every push to `main` and every PR. They're the same
+scripts I run locally:
+
+```bash
+python ../estral-tools/laplace-daemon/build_tarot.py --check
+python ../estral-tools/laplace-daemon/check_translations.py
+python ../estral-tools/laplace-daemon/check_scripts.py
+python ../estral-tools/laplace-daemon/check_lua.py
+python ../estral-tools/laplace-daemon/check_line_endings.py
+```
+
+| Check | Why |
+| --- | --- |
+| Generated files are current | A card switched on in `LD_Arcana.lua` without a re-run has no item script, so drawing it hands the player nothing. |
+| Every item and label has a name | A broken JSON file or a missing key fails silently in game: the label renders as its raw key. |
+| Scripts only point at things that exist | An undeclared `LDArcana.` name resolves to nothing, and an item whose icon file is missing has no picture. |
+| Lua parses | A syntax error only shows up once the game loads the file, and then the whole file is skipped. |
+| Nothing that ships is CRLF | `.gitattributes` checks the mod out LF for the multiplayer checksum, but the Workshop upload comes from the working copy, so an editor that saves CRLF gets past git. |
+
+All stdlib except `check_lua.py`, which needs `luaparser`. CI checks estral-tools out with a
+read-only deploy key, kept in the `ESTRAL_TOOLS_KEY` secret. PR titles have to start with
+`fix:`, `feat:`, `chore:`, `refactor:` or `docs:`.
+
 ## Testing
 
 In singleplayer with `-debug`, right-click the ground and pick **LD: Run Playtest**. It draws
