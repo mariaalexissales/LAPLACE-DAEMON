@@ -16,14 +16,17 @@ LDArcana.define("TEMPERANCE", {
     stats = { "baseSpeed", "weight", "conditionLowerChance" },
 
     past = {
+        title = "Tempered by the forge",
         mods = { conditionMax = 1, weight = -1 },
     },
 
     present = {
+        title = "Economy of motion",
         mods = { baseSpeed = 1, weight = -1, conditionLowerChance = 1 },
     },
 
     future = {
+        title = "Built to outlast",
         mods = { conditionLowerChance = 1, weight = -1, averageCondition = 1 },
     },
 })
