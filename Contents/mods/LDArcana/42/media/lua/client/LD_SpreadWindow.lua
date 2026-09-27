@@ -19,15 +19,21 @@ local PAD = 10
 local GAP = 10
 local CARD_W = 102
 local CARD_H = 158
-local LABEL_H = 34
+-- a slot is wider than its card, so a title has room under the art to wrap into.
+local SLOT_W = 136
+local TITLE_LINES = 2
 local ROW_H = 16
 
 local function LD_fontHeight()
     return getTextManager():getFontHeight(UIFont.Small)
 end
 
--- slot labels get one line each and a card is only 102 wide, so "Momentum already
--- established" has to give way rather than run into the card beside it.
+-- the position, then the title. read off the font, which the player can make bigger.
+local function LD_labelHeight()
+    return 3 + LD_fontHeight() * (1 + TITLE_LINES)
+end
+
+-- cuts text down to width with "...", for a stat name or a word too long for its slot.
 local function LD_fit(text, width)
     local manager = getTextManager()
     if manager:MeasureStringX(UIFont.Small, text) <= width then return text end
@@ -37,6 +43,31 @@ local function LD_fit(text, width)
     end
 
     return text .. "..."
+end
+
+-- breaks a title on spaces into lines no wider than width. past maxLines, the rest goes
+-- onto the last line and gives way there, so "What has already been destroyed" wraps
+-- rather than running into the card beside it.
+local function LD_wrap(text, width, maxLines)
+    local manager = getTextManager()
+    local lines = {}
+
+    for word in text:gmatch("%S+") do
+        local last = lines[#lines]
+        if last and manager:MeasureStringX(UIFont.Small, last .. " " .. word) <= width then
+            lines[#lines] = last .. " " .. word
+        else
+            lines[#lines + 1] = word
+        end
+    end
+
+    while #lines > maxLines do
+        lines[#lines - 1] = lines[#lines - 1] .. " " .. lines[#lines]
+        lines[#lines] = nil
+    end
+
+    for i, line in ipairs(lines) do lines[i] = LD_fit(line, width) end
+    return lines
 end
 
 LD_SpreadSlot = ISButton:derive("LD_SpreadSlot")
@@ -70,20 +101,21 @@ function LD_SpreadSlot:prerender()
     local card = LDSpread.cardAt(self.window.weapon, self.position)
     local texture = card and LDArcana.cardPanel(card.id) or LDArcana.backPanel()
     local hover = self:isMouseOver()
+    local cardX = math.floor((self.width - CARD_W) / 2)
 
-    self:drawRect(0, 0, self.width, CARD_H, hover and 0.5 or 0.35, 0, 0, 0)
+    self:drawRect(cardX, 0, CARD_W, CARD_H, hover and 0.5 or 0.35, 0, 0, 0)
 
     if texture then
         -- an empty slot shows the back of a card, dimmed, so the eye goes to the filled ones.
         local alpha = card and 1 or 0.45
-        self:drawTextureScaledAspect(texture, 1, 1, self.width - 2, CARD_H - 2, alpha, 1, 1, 1)
+        self:drawTextureScaledAspect(texture, cardX + 1, 1, CARD_W - 2, CARD_H - 2, alpha, 1, 1, 1)
     end
 
     local frame = LD_SpreadWindow.frameTexture()
     if frame then
-        self:drawTextureScaled(frame, 0, 0, self.width, CARD_H, hover and 1 or 0.7, 1, 1, 1)
+        self:drawTextureScaled(frame, cardX, 0, CARD_W, CARD_H, hover and 1 or 0.7, 1, 1, 1)
     else
-        self:drawRectBorder(0, 0, self.width, CARD_H, hover and 0.6 or 0.25, 1, 1, 1)
+        self:drawRectBorder(cardX, 0, CARD_W, CARD_H, hover and 0.6 or 0.25, 1, 1, 1)
     end
 
     local y = CARD_H + 3
@@ -95,7 +127,17 @@ function LD_SpreadSlot:prerender()
     if card then
         subtitle = card[self.position].title or LDArcana.cardName(card.id)
     end
-    self:drawTextCentre(LD_fit(subtitle, self.width - 4), self.width / 2, y, 0.72, 0.72, 0.72, 1, UIFont.Small)
+
+    -- wrapped once per title rather than measured word by word every frame.
+    if subtitle ~= self.wrappedFrom then
+        self.wrappedFrom = subtitle
+        self.wrapped = LD_wrap(subtitle, self.width - 4, TITLE_LINES)
+    end
+
+    for _, line in ipairs(self.wrapped) do
+        self:drawTextCentre(line, self.width / 2, y, 0.72, 0.72, 0.72, 1, UIFont.Small)
+        y = y + LD_fontHeight()
+    end
 end
 
 function LD_SpreadSlot:render()
@@ -123,7 +165,7 @@ function LD_SpreadWindow.open(player, weapon)
     local existing = LD_SpreadWindow.instances[playerNum]
     if existing then existing:close() end
 
-    local width = PAD * 2 + CARD_W * 3 + GAP * 2
+    local width = PAD * 2 + SLOT_W * 3 + GAP * 2
     local height = 400
     local x = getCore():getScreenWidth() / 2 - width / 2
     local y = getCore():getScreenHeight() / 2 - height / 2
@@ -164,15 +206,15 @@ function LD_SpreadWindow:createChildren()
     local y = self:titleBarHeight() + PAD
 
     for i, position in ipairs(LDArcana.POSITIONS) do
-        local x = PAD + (i - 1) * (CARD_W + GAP)
-        local slot = LD_SpreadSlot:new(x, y, CARD_W, CARD_H + LABEL_H, self, position)
+        local x = PAD + (i - 1) * (SLOT_W + GAP)
+        local slot = LD_SpreadSlot:new(x, y, SLOT_W, CARD_H + LD_labelHeight(), self, position)
         slot:initialise()
         slot:instantiate()
         self:addChild(slot)
         self.slots[position] = slot
     end
 
-    self.statsY = y + CARD_H + LABEL_H + PAD
+    self.statsY = y + CARD_H + LD_labelHeight() + PAD
     self:refresh()
 
     -- the stats list is drawn, not built from children, so the window is sized to it here.
