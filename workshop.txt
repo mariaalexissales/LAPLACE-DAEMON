@@ -1,5 +1,5 @@
 version=1
-id=
+id=3809376465
 title=LAPLACE//DAEMON
 description=[h1]LAPLACE//DAEMON[/h1]
 description=[h2]Your forge is a loot drop now. Every blade rolls a rarity, and a roll of its own.[/h2]
@@ -122,5 +122,5 @@ description=[b]Dead Court Deck[/b]
 description=For your [strike]scalper[/strike] collectable needs!
 description=
 description=[hr][/hr]
-tags=Build 42;Items;Weapons;Misc;WIP
+tags=Build 42;Items;Misc;WIP;Weapons
 visibility=public
