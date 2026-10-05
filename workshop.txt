@@ -1,6 +1,8 @@
 version=1
 id=3809376465
 title=LAPLACE//DAEMON
+description=[img]https://i.imgur.com/lja52Fs.gif[/img]
+description=
 description=[h1]LAPLACE//DAEMON[/h1]
 description=[h2]Your forge is a loot drop now. Every blade rolls a rarity, and a roll of its own.[/h2]
 description=[b]Every blade you forge rolls Common to Legendary off your Blacksmith level, then rolls its own damage inside that tier. Then you read it its fortune: three tarot cards in Past, Present and Future.[/b]
