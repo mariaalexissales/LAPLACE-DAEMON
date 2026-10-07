@@ -15,10 +15,17 @@ function LD_SpreadMenu.onOpen(player, weapon)
     LD_SpreadWindow.open(player, weapon)
 end
 
--- every rolled weapon the player is carrying, for the menu on a card.
-local function LD_carriedWeapons(player)
+-- what a spread opens on: a rolled weapon or a rolled piece of armor. a loose blade or head
+-- carries its cards along, but has no numbers to show.
+local function LD_hasSpread(item)
+    return (instanceof(item, "HandWeapon") or instanceof(item, "Clothing")) and LDSpread.canSocket(item)
+end
+
+-- everything the player is carrying or wearing that the card could go into, for the menu on
+-- a card.
+local function LD_carriedFor(player, card)
     local found = player:getInventory():getAllEvalRecurse(function(item)
-        return instanceof(item, "HandWeapon") and LDItem.get(item) ~= nil
+        return LD_hasSpread(item) and LDArcana.fits(card, item)
     end, ArrayList.new())
 
     local weapons = {}
@@ -34,11 +41,11 @@ local function LD_onFillInventoryObjectContextMenu(playerNum, context, items)
     local weapon, card = nil, nil
 
     for _, item in ipairs(selected) do
-        if not weapon and instanceof(item, "HandWeapon") and LDSpread.canSocket(item) then
+        if not weapon and LD_hasSpread(item) then
             weapon = item
         end
-        if not card and LDArcana.cardOfItem(item) then
-            card = item
+        if not card then
+            card = LDArcana.cardOfItem(item)
         end
     end
 
@@ -49,16 +56,16 @@ local function LD_onFillInventoryObjectContextMenu(playerNum, context, items)
         return
     end
 
-    -- on a card, the spread to open is whichever weapon it would go into.
+    -- on a card, the spread to open is whichever weapon or armor it would go into.
     if card then
-        local weapons = LD_carriedWeapons(player)
+        local weapons = LD_carriedFor(player, card)
 
         if #weapons == 0 then
             local option = context:addOption(label)
             option.notAvailable = true
             option.toolTip = ISInventoryPaneContextMenu.addToolTip()
-            option.toolTip.description = LDCore.text("ContextMenu_LD_NoWeapon",
-                "No forged weapon to put it in.")
+            option.toolTip.description = LDCore.text("ContextMenu_LD_NothingForged",
+                "Nothing forged to put it in.")
             return
         end
 

@@ -14,8 +14,9 @@ require "TimedActions/LD_SocketCardAction"
 require "TimedActions/LD_DrawCardAction"
 
 -- a self-test of the whole loop, run in the real game against the real code: draw from a
--- deck, forge a blade, put it on a handle and take it off, socket cards. every check prints
--- one "[LD TEST]" line to console.txt, and every item it makes is cleaned up at the end.
+-- deck, forge a blade, a spear head, a mace head and a cuirass, put them together and take
+-- them apart, socket cards into a sword and into armor. every check prints one "[LD TEST]"
+-- line to console.txt, and every item it makes is cleaned up at the end.
 --
 -- debug mode: right-click the ground -> LD: Run Playtest. or LDPlaytest.run() in the console.
 --
@@ -76,14 +77,18 @@ local function LD_arrayList(items)
     return list
 end
 
--- what a finished craft hands its handler. the handlers only ever ask for these two lists.
-local function LD_craft(created, consumed)
+-- what a finished craft hands its handler. the handlers only ever ask for these three lists.
+-- kept is the tools a recipe hands back. whether vanilla also counts those as consumed isn't
+-- something to lean on, so the test that cares puts its tool in both.
+local function LD_craft(created, consumed, kept)
     local createdList = LD_arrayList(created)
     local consumedList = LD_arrayList(consumed or {})
+    local keptList = LD_arrayList(kept or {})
 
     return {
         getAllCreatedItems = function() return createdList end,
         getAllConsumedItems = function() return consumedList end,
+        getAllKeepInputItems = function() return keptList end,
     }
 end
 
@@ -133,20 +138,26 @@ function LDPlaytest.run(player)
     print(TAG .. "start. forging at blacksmith " .. SMITH_LEVEL .. ", active cards: "
         .. table.concat(LDArcana.activeCards(), ", "))
 
-    local blade, sword = nil, nil
+    local blade, sword, cuirass = nil, nil, nil
 
-    LD_section("blades only", function()
-        local probeSword = inventory:AddItem("Base.Sword")
-        local probeCleaver = inventory:AddItem("Base.MeatCleaverForged")
-        local probeBlade = inventory:AddItem("Base.SwordBlade")
-        local probeBar = inventory:AddItem("Base.IronBarQuarter")
+    LD_section("what rolls", function()
+        local function rolls(fullType) return LDItem.isRollable(inventory:AddItem(fullType)) end
 
-        LD_check("a sword counts as bladed", LDItem.isBladed(probeSword))
-        LD_check("a meat cleaver doesn't, the game files it as an axe", not LDItem.isBladed(probeCleaver))
-        LD_check("a sword blade can roll", LDItem.isRollable(probeBlade))
-        LD_check("a leftover iron bar can't", not LDItem.isRollable(probeBar))
-        LD_check("meat cleaver blade forging is off", LDCore.Recipes.Forge_Meat_Cleaver_Blade == nil)
+        LD_check("a sword rolls", rolls("Base.Sword"))
+        LD_check("a spear", rolls("Base.SpearShort"))
+        LD_check("a hand axe", rolls("Base.HandAxeForged"))
+        LD_check("a mace", rolls("Base.Mace"))
+        LD_check("a meat cleaver, which the game files as an axe", rolls("Base.MeatCleaverForged"))
+        LD_check("a sword blade", rolls("Base.SwordBlade"))
+        LD_check("a mace head, which nothing marks as sharpenable", rolls("Base.MaceHead"))
+        LD_check("a cuirass", rolls("Base.Cuirass_Metal"))
+        LD_check("a leftover iron bar doesn't", not rolls("Base.IronBarQuarter"))
+        LD_check("nor the broken shaft off a dismantled spear", not rolls("Base.LongStick_Broken"))
+        LD_check("nor a pistol", not rolls("Base.Pistol"))
+        LD_check("spear heads are forged", LDCore.Recipes.ForgeSpearHead == "forge")
+        LD_check("and keep the roll going on a shaft", LDCore.Recipes.AssembleSpear == "carry")
         LD_check("crude knives carry the roll onto their handle", LDCore.Recipes.MakeCrudeKnife == "carry")
+        LD_check("body armor is forged", LDCore.Recipes.Forge_Body_Armor == "forge")
     end)
 
     LD_section("rarity odds", function()
@@ -213,9 +224,103 @@ function LDPlaytest.run(player)
         local back = LDItem.get(offAgain)
         LD_check("taking it off the handle keeps the same roll", back ~= nil and back.pct == to.pct)
 
-        local cleaver = inventory:AddItem("Base.MeatCleaverForged")
-        LDCore.CraftHandlers.carry(LD_craft({ cleaver }, { blade }))
-        LD_check("a meat cleaver never picks up a rarity", LDItem.get(cleaver) == nil)
+        -- a forged hammer is the tool in this recipe, and has a roll of its own.
+        local hammer = inventory:AddItem("Base.SmithingHammer")
+        LDItem.stamp(hammer, LDItem.newData("LEGENDARY", 200, SMITH_LEVEL))
+        local plainBlade = inventory:AddItem("Base.SwordBlade")
+        local plainSword = inventory:AddItem("Base.Sword")
+        LDCore.CraftHandlers.carry(LD_craft({ plainSword }, { plainBlade, hammer }, { hammer }))
+        LD_check("a rolled hammer used as the tool doesn't hand its roll to a found blade",
+            LDItem.get(plainSword) == nil)
+    end)
+
+    LD_section("spears", function()
+        local head = inventory:AddItem("Base.SpearHead")
+        LDCore.CraftHandlers.forge(LD_craft({ head }), LD_smith(SMITH_LEVEL))
+
+        local from = LDItem.get(head)
+        LD_check("the forged spear head has a rarity", from ~= nil and LDCore.rarity(from.rarity) ~= nil,
+            from and (tostring(from.rarity) .. " " .. tostring(from.pct) .. "%"))
+        if not from then return end
+
+        local shaft = inventory:AddItem("Base.LongStick")
+        local spear = inventory:AddItem("Base.SpearShort")
+        LDCore.CraftHandlers.carry(LD_craft({ spear }, { head, shaft }))
+
+        local to = LDItem.get(spear)
+        LD_check("the spear kept the head's roll", to ~= nil and to.pct == from.pct, to and (to.pct .. "%"))
+        if not to then return end
+
+        LD_check("the shaft wasn't stamped", LDItem.get(shaft) == nil)
+
+        local base = LDItem.baseStats(spear:getFullType())
+        local expected = base.maxDamage * to.pct / 100
+        LD_check("max damage is vanilla x the roll", LD_near(spear:getMaxDamage(), expected),
+            LD_n(spear:getMaxDamage()) .. " = " .. LD_n(base.maxDamage) .. " x " .. to.pct .. "%")
+
+        local headAgain = inventory:AddItem("Base.SpearHead")
+        local stump = inventory:AddItem("Base.LongStick_Broken")
+        LDCore.CraftHandlers.carry(LD_craft({ headAgain, stump }, { spear }))
+
+        local back = LDItem.get(headAgain)
+        LD_check("taking the head back off keeps the same roll", back ~= nil and back.pct == to.pct)
+        LD_check("the broken shaft that came off with it wasn't stamped", LDItem.get(stump) == nil)
+    end)
+
+    LD_section("heads", function()
+        local head = inventory:AddItem("Base.MaceHead")
+        LDCore.CraftHandlers.forge(LD_craft({ head }), LD_smith(SMITH_LEVEL))
+
+        local from = LDItem.get(head)
+        LD_check("the forged mace head has a rarity", from ~= nil and LDCore.rarity(from.rarity) ~= nil)
+        if not from then return end
+
+        local bat = inventory:AddItem("Base.ShortBat")
+        local mace = inventory:AddItem("Base.Mace")
+        LDCore.CraftHandlers.carry(LD_craft({ mace }, { head, bat }))
+
+        local to = LDItem.get(mace)
+        LD_check("the mace kept the head's roll", to ~= nil and to.pct == from.pct, to and (to.pct .. "%"))
+        LD_check("the name carries the rarity",
+            to ~= nil and string.find(mace:getName(), LDCore.rarityName(to.rarity), 1, true) ~= nil, mace:getName())
+    end)
+
+    LD_section("armor", function()
+        cuirass = inventory:AddItem("Base.Cuirass_Metal")
+        cuirass:setCondition(cuirass:getConditionMax())
+        LDCore.CraftHandlers.forge(LD_craft({ cuirass }), LD_smith(SMITH_LEVEL))
+
+        local data = LDItem.get(cuirass)
+        LD_check("the forged cuirass has a rarity", data ~= nil and LDCore.rarity(data.rarity) ~= nil,
+            data and (tostring(data.rarity) .. " " .. tostring(data.pct) .. "%"))
+        if not data then return end
+
+        LD_check("the name carries the rarity",
+            string.find(cuirass:getName(), LDCore.rarityName(data.rarity), 1, true) ~= nil, cuirass:getName())
+
+        local base = LDItem.baseStats(cuirass:getFullType())
+        local function scaled(value) return math.floor(value * data.pct / 100 + 0.5) end
+
+        LD_check("bite defense is vanilla x the roll, and never past 100",
+            LD_near(cuirass:getBiteDefense(), math.min(100, scaled(base.biteDefense))),
+            LD_n(cuirass:getBiteDefense()) .. " from " .. LD_n(base.biteDefense))
+        LD_check("bullet defense is vanilla x the roll",
+            LD_near(cuirass:getBulletDefense(), math.min(100, scaled(base.bulletDefense))),
+            LD_n(cuirass:getBulletDefense()) .. " from " .. LD_n(base.bulletDefense))
+        LD_check("max condition is vanilla x the roll",
+            cuirass:getConditionMax() == math.max(1, scaled(base.conditionMax)),
+            cuirass:getConditionMax() .. " from " .. LD_n(base.conditionMax))
+        LD_check("and it came off the anvil at full condition",
+            cuirass:getCondition() == cuirass:getConditionMax(),
+            cuirass:getCondition() .. " / " .. cuirass:getConditionMax())
+
+        local once = LDItem.applyStats(cuirass)
+        local twice = LDItem.applyStats(cuirass)
+        local same = true
+        for stat in pairs(LDItem.ARMOR_STATS) do
+            if once[stat] ~= twice[stat] and not LD_near(once[stat], twice[stat]) then same = false end
+        end
+        LD_check("refreshing twice changes nothing", same)
     end)
 
     LD_section("the deck", function()
@@ -327,6 +432,54 @@ function LDPlaytest.run(player)
         LD_socket(sword, "past", nil)
         LD_check("condition never sits above the max", sword:getCondition() <= sword:getConditionMax(),
             sword:getCondition() .. " / " .. sword:getConditionMax())
+    end)
+
+    LD_section("cards on armor", function()
+        if not cuirass or not LDItem.get(cuirass) then
+            LD_check("there's a forged cuirass to socket into", false)
+            return
+        end
+
+        local function give(id) return inventory:AddItem(LDArcana.card(id).itemType) end
+        local chariot, empress, emperor, temperance = give("CHARIOT"), give("EMPRESS"), give("EMPEROR"), give("TEMPERANCE")
+
+        LD_check("the Chariot has no reading for armor",
+            not LD_SocketCardAction:new(player, cuirass, "present", chariot):isValid())
+        LD_socket(cuirass, "present", chariot)
+        LD_check("and the server refuses it as well", (LDSpread.get(cuirass) or {}).present == nil)
+        LD_check("which cost nothing: the card is still here", inventory:containsRecursive(chariot))
+
+        if sword and LDItem.get(sword) then
+            LD_check("the Empress has no reading for a sword",
+                not LD_SocketCardAction:new(player, sword, "past", empress):isValid())
+        end
+
+        local rolled = LDItem.computeStats(cuirass)
+        local preview = LDArcana.preview(cuirass, "present", "EMPRESS")
+        local promised = preview and preview.after
+
+        LD_check("the Empress in Present previews more insulation",
+            promised ~= nil and promised.insulation > rolled.insulation,
+            promised and (LD_n(rolled.insulation) .. " -> " .. LD_n(promised.insulation)))
+        if not promised then return end
+
+        LD_socket(cuirass, "present", empress)
+        LD_check("the Empress sits in Present", (LDSpread.get(cuirass) or {}).present == "EMPRESS")
+        LD_check("the cuirass got what the preview promised", LD_near(cuirass:getInsulation(), promised.insulation),
+            LD_n(cuirass:getInsulation()) .. " vs " .. LD_n(promised.insulation))
+
+        LD_socket(cuirass, "past", temperance)
+        local tempered = LDItem.computeStats(cuirass)
+        LD_check("Temperance made the cuirass lighter", tempered.weight < rolled.weight,
+            LD_n(rolled.weight) .. " -> " .. LD_n(tempered.weight))
+        LD_check("and warmer still", tempered.insulation > promised.insulation,
+            LD_n(promised.insulation) .. " -> " .. LD_n(tempered.insulation))
+
+        -- the same Emperor that was on the sword. on armor it reads as protection.
+        LD_socket(cuirass, "future", emperor)
+        LD_check("the Emperor goes on armor too", (LDSpread.get(cuirass) or {}).future == "EMPEROR")
+        LD_check("where it stops bullets rather than adding damage", cuirass:getBulletDefense() > rolled.bulletDefense,
+            LD_n(rolled.bulletDefense) .. " -> " .. LD_n(cuirass:getBulletDefense()))
     end)
 
     -- clean up everything the test made, in one pass after it's done using them.

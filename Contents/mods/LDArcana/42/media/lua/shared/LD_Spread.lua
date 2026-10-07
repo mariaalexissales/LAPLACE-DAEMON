@@ -55,6 +55,9 @@ function LDSpread.socket(item, position, cardId, player)
     local data = LDItem.get(item)
     if not data then return false end
 
+    -- a weapon card has nothing to say to a cuirass, and the other way round.
+    if not LDArcana.fits(LDArcana.card(cardId), item) then return false end
+
     local already = LDSpread.positionOf(item, cardId)
     if already and already ~= position then return false end
 

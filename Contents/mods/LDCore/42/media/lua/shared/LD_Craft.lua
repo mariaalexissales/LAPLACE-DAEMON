@@ -22,14 +22,63 @@ LDCore.Recipes = {
     Forge_ShortSwordBlade        = "forge",
     Forge_Sword_Blade            = "forge",
     Forge_Machete_Blade          = "forge",
+    Forge_Meat_Cleaver_Blade     = "forge",
+    ForgeSpearHead               = "forge",
+    ForgeLongSpearHead           = "forge",
 
-    -- blades only for now. spear heads would lose the roll going on a shaft, and the meat
-    -- cleaver is an axe to the game.
+    -- heads. the scythe is left out: the game doesn't file it as a weapon.
+    Forge_Hand_Scythe_Head       = "forge",
+    Forge_Hand_Axe_Head          = "forge",
+    Forge_Old_Axe_Head           = "forge",
+    Forge_Wood_Axe_Head          = "forge",
+    Forge_Pick_Axe_Head          = "forge",
+    Forge_Sledgehammer_Head      = "forge",
+    Forge_Smithing_Hammer_Head   = "forge",
+    Forge_Ball_Peen_Hammer_Head  = "forge",
+    Forge_Clawhammer_Head        = "forge",
+    Forge_Club_Hammer_Head       = "forge",
+    ForgeMaceHead                = "forge",
+    Forge_Garden_Hoe_Head        = "forge",
+    forge_garden_fork_head       = "forge",
+    Forge_Spade_Head             = "forge",
+
+    -- armor. the Assemble_ ones are made from sheet metal like the rest, not from a piece
+    -- that already rolled, so they roll too.
+    Forge_Codpiece                   = "forge",
+    Forge_Gorget                     = "forge",
+    Forge_Armored_Gloves             = "forge",
+    Forge_Body_Armor                 = "forge",
+    Forge_CoatOfPlates               = "forge",
+    Forge_Metal_Mask                 = "forge",
+    Forge_Metal_Helmet               = "forge",
+    Assemble_Forearm_Armor           = "forge",
+    Assemble_FullMetal_Forearm_Armor = "forge",
+    Assemble_Thigh_Armor             = "forge",
+    Assemble_Articulated_Thigh_Armor = "forge",
+    Assemble_Shin_Armor              = "forge",
+    Assemble_Articulated_Shin_Armor  = "forge",
+    Assemble_Simple_Shoulder_Armor   = "forge",
+    Assemble_Shoulder_Armor_Left     = "forge",
+    Assemble_Shoulder_Armor_Right    = "forge",
 
     AssembleBlade                = "carry",
     DismantleBlade               = "carry",
     -- the crude blade and long crude blade go on their handle here, not in AssembleBlade.
     MakeCrudeKnife               = "carry",
+
+    AssembleSpear                = "carry",
+    AssembleShortImplement       = "carry",
+    AssembleLongImplement        = "carry",
+    AssembleLongerImplement      = "carry",
+    AssembleMace                 = "carry",
+    DismantleShortImplement      = "carry",
+    DismantleLongImplement       = "carry",
+
+    -- a forged knife tied to a stick, and taken back off it.
+    BindSpear                    = "carry",
+    DuctTapeSpear                = "carry",
+    WireSpear                    = "carry",
+    ReclaimFromSpear             = "carry",
 }
 
 -- same signature as a script OnCreate, (craftRecipeData, character). if the wrap below ever
@@ -76,7 +125,13 @@ function LDCore.CraftHandlers.forge(craftRecipeData, character, recipe)
                 data = LDItem.newData(rarity, LDItem.rollPct(rarity), level),
             })
 
+            -- the roll raises armor's max condition, and the piece was made full at the old one.
+            local full = item:getCondition() >= item:getConditionMax()
             LDItem.stamp(item, rolled.data)
+            if full and item:getCondition() < item:getConditionMax() then
+                item:setCondition(item:getConditionMax())
+            end
+
             LDItem.sync(character, item)
             LDCore.log("forged " .. item:getFullType() .. " at blacksmith " .. level
                 .. ": " .. tostring(rolled.data.rarity) .. " " .. tostring(rolled.data.pct) .. "%")
@@ -84,10 +139,25 @@ function LDCore.CraftHandlers.forge(craftRecipeData, character, recipe)
     end
 end
 
+-- the tools a recipe hands back. a forged hammer or knife used as one has a roll of its own,
+-- and it isn't what the thing was made from.
+local function LD_keptIds(craftRecipeData)
+    local kept = {}
+
+    local ok, items = pcall(function() return craftRecipeData:getAllKeepInputItems() end)
+    if ok then
+        for _, item in ipairs(LD_list(items)) do kept[item:getID()] = true end
+    end
+
+    return kept
+end
+
 function LDCore.CraftHandlers.carry(craftRecipeData, character)
+    local kept = LD_keptIds(craftRecipeData)
+
     local source = nil
     for _, item in ipairs(LD_list(craftRecipeData:getAllConsumedItems())) do
-        if LDItem.get(item) then
+        if LDItem.get(item) and not kept[item:getID()] and LDItem.isRollable(item) then
             source = item
             break
         end

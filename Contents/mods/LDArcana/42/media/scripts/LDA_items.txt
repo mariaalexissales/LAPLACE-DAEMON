@@ -11,12 +11,32 @@ module LDArcana
 		Base
 	}
 
+	item Tarot_EMPRESS
+	{
+		DisplayCategory		= Memento,
+		ItemType		= base:normal,
+		DisplayName		= The Empress,
+		Icon			= LD_Tarot_EMPRESS,
+		Weight			= 0.01,
+		WorldStaticModel	= TarotCardDeck,
+	}
+
 	item Tarot_EMPEROR
 	{
 		DisplayCategory		= Memento,
 		ItemType		= base:normal,
 		DisplayName		= The Emperor,
 		Icon			= LD_Tarot_EMPEROR,
+		Weight			= 0.01,
+		WorldStaticModel	= TarotCardDeck,
+	}
+
+	item Tarot_HIEROPHANT
+	{
+		DisplayCategory		= Memento,
+		ItemType		= base:normal,
+		DisplayName		= The Hierophant,
+		Icon			= LD_Tarot_HIEROPHANT,
 		Weight			= 0.01,
 		WorldStaticModel	= TarotCardDeck,
 	}

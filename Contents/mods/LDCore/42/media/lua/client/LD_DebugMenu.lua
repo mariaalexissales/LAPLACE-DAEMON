@@ -48,6 +48,15 @@ function LD_DebugMenu.inspect(item)
         LDCore.log("  damage " .. item:getMinDamage() .. " - " .. item:getMaxDamage()
             .. (base and (" (vanilla " .. base.minDamage .. " - " .. base.maxDamage .. ")") or ""))
     end
+
+    if instanceof(item, "Clothing") then
+        local base = LDItem.baseStats(item:getFullType())
+        LDCore.log("  bite / scratch / bullet " .. item:getBiteDefense() .. " / "
+            .. item:getScratchDefense() .. " / " .. item:getBulletDefense()
+            .. (base and (" (vanilla " .. base.biteDefense .. " / " .. base.scratchDefense
+                .. " / " .. base.bulletDefense .. ")") or ""))
+        LDCore.log("  condition " .. item:getCondition() .. " / " .. item:getConditionMax())
+    end
 end
 
 -- stamps a chosen rarity without going near a forge, for testing names, stats and cards. the

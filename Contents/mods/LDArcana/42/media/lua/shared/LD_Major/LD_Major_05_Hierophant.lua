@@ -4,18 +4,26 @@
 
 require "LD_Arcana"
 
--- V - The Hierophant. Durability.
--- stats from the design: Max Condition, Condition Lower Chance.
--- the design also lists Head Condition. there's no setter for a head's maximum, and no
--- blade has a head, so it isn't a stat this mod can move.
--- no effects yet.
+-- V - The Hierophant. Protection. an armor card: it has no reading for a weapon.
+-- stats from the design: Insulation, Bite Defense, Scratch Defense, Bullet Defense.
 
 LDArcana.define("HIEROPHANT", {
-    area = "Durability",
+    area = "Protection",
     theme = "Discipline, tradition, maintenance",
-    stats = { "conditionMax", "conditionLowerChance" },
+    stats = { "insulation", "biteDefense", "scratchDefense", "bulletDefense" },
 
-    -- past    = { title = "", text = "", mods = { conditionMax = 1 } },
-    -- present = { title = "", text = "", mods = { conditionMax = 2 } },
-    -- future  = { title = "", text = "", mods = { conditionMax = 1 } },
+    past = {
+        title = "Tradition",
+        armorMods = { insulation = 1, scratchDefense = 1 },
+    },
+
+    present = {
+        title = "Discipline",
+        armorMods = { biteDefense = 1, scratchDefense = 1, bulletDefense = 1 },
+    },
+
+    future = {
+        title = "Preservation",
+        armorMods = { insulation = 1, biteDefense = 1, bulletDefense = 1 },
+    },
 })

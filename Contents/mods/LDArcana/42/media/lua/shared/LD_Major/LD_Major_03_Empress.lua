@@ -4,16 +4,26 @@
 
 require "LD_Arcana"
 
--- III - The Empress. Durability.
--- stats from the design: Max Condition, Average Condition, Condition Lower Chance.
--- no effects yet.
+-- III - The Empress. Protection. an armor card: it has no reading for a weapon.
+-- stats from the design: Insulation, Bite Defense, Scratch Defense, Bullet Defense.
 
 LDArcana.define("EMPRESS", {
-    area = "Durability",
+    area = "Protection",
     theme = "Preservation, growth, sustaining what you possess",
-    stats = { "conditionMax", "averageCondition", "conditionLowerChance" },
+    stats = { "insulation", "biteDefense", "scratchDefense", "bulletDefense" },
 
-    -- past    = { title = "", text = "", mods = { conditionMax = 1 } },
-    -- present = { title = "", text = "", mods = { conditionMax = 2 } },
-    -- future  = { title = "", text = "", mods = { conditionMax = 1 } },
+    past = {
+        title = "Nurture",
+        armorMods = { insulation = 1, scratchDefense = 1 },
+    },
+
+    present = {
+        title = "Protection",
+        armorMods = { biteDefense = 1, scratchDefense = 1, insulation = 1 },
+    },
+
+    future = {
+        title = "Preservation",
+        armorMods = { biteDefense = 1, bulletDefense = 1, insulation = 1 },
+    },
 })

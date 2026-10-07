@@ -29,7 +29,7 @@ function LD_SocketCardAction:isValid()
     if not inventory:containsRecursive(self.cardItem) then return false end
 
     local card = LDArcana.cardOfItem(self.cardItem)
-    if not card then return false end
+    if not card or not LDArcana.fits(card, self.weapon) then return false end
 
     -- a card reads as one card wherever it sits, so it can't go on the same weapon twice.
     local already = LDSpread.positionOf(self.weapon, card.id)

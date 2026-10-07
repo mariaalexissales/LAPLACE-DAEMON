@@ -40,35 +40,76 @@ function LDItem.copy(from, to)
     return true
 end
 
--- the mod's scope for now is blades, sorted the way the game sorts them. the meat cleaver
--- and the hand scythe are axes to the game, so they stay vanilla.
+-- what the stats and the cards treat an item as. a loose blade or head is a weapon that
+-- isn't put together yet.
+function LDItem.kindOf(item)
+    return instanceof(item, "Clothing") and "armor" or "weapon"
+end
+
+-- anything swung or thrust, sorted the way the game sorts it. a weapon in two categories (a
+-- long mace is improvised and blunt) only needs one of these.
 local LD_warnedCategory = false
 
-function LDItem.isBladed(weapon)
-    local ok, bladed = pcall(function()
+function LDItem.isMelee(weapon)
+    local ok, melee = pcall(function()
+        if weapon:isRanged() then return false end
+
         return weapon:isOfWeaponCategory(WeaponCategory.LONG_BLADE)
             or weapon:isOfWeaponCategory(WeaponCategory.SMALL_BLADE)
+            or weapon:isOfWeaponCategory(WeaponCategory.SPEAR)
+            or weapon:isOfWeaponCategory(WeaponCategory.AXE)
+            or weapon:isOfWeaponCategory(WeaponCategory.BLUNT)
+            or weapon:isOfWeaponCategory(WeaponCategory.SMALL_BLUNT)
     end)
 
-    -- said once, loudly, because every blade quietly staying vanilla is hard to spot.
+    -- said once, loudly, because every weapon quietly staying vanilla is hard to spot.
     if not ok then
         if not LD_warnedCategory then
             LD_warnedCategory = true
-            LDCore.warn("can't read weapon categories, nothing will roll: " .. tostring(bladed))
+            LDCore.warn("can't read weapon categories, nothing will roll: " .. tostring(melee))
         end
         return false
     end
 
-    return bladed == true
+    return melee == true
 end
 
--- the thing a recipe was actually for: a bladed weapon, or a blade that isn't on a handle
--- yet. skips the leftover bar from mapper outputs, the handle that comes off in a
--- dismantle, and any weapon that isn't a blade.
+-- the heads that aren't sharpenable. nothing in the game marks them as the part of a weapon
+-- that matters, so they're named.
+LDCore.Heads = {
+    ["Base.MaceHead"]           = true,
+    ["Base.SledgehammerHead"]   = true,
+    ["Base.SmithingHammerHead"] = true,
+    ["Base.BallPeenHammerHead"] = true,
+    ["Base.ClawhammerHead"]     = true,
+    ["Base.ClubHammerHead"]     = true,
+    ["Base.PickAxeHead"]        = true,
+    ["Base.GardenHoeHead"]      = true,
+    ["Base.SpadeHead_Forged"]   = true,
+}
+
+-- what comes off beside the head in a dismantle. these are weapons to the game, so without
+-- this the stick would walk away with a copy of the roll.
+LDCore.Handles = {
+    ["Base.LongHandle_Broken"]       = true,
+    ["Base.LongStick_Broken"]        = true,
+    ["Base.GardenToolHandle_Broken"] = true,
+    ["Base.Branch_Broken"]           = true,
+    ["Base.LongStick"]               = true,
+}
+
+-- the thing a recipe was actually for: a melee weapon, a piece of armor, or a blade or head
+-- that isn't on a handle yet. skips the leftover bar from mapper outputs and the handle that
+-- comes off in a dismantle. only the recipes in LDCore.Recipes ever ask.
 function LDItem.isRollable(item)
     if not item then return false end
-    if instanceof(item, "HandWeapon") then return LDItem.isBladed(item) end
-    return item:isSharpenable()
+
+    if instanceof(item, "HandWeapon") then
+        return LDItem.isMelee(item) and not LDCore.Handles[item:getFullType()]
+    end
+    if instanceof(item, "Clothing") then return true end
+
+    return item:isSharpenable() or LDCore.Heads[item:getFullType()] == true
 end
 
 -- a copy, so hooks can change it freely. a level with no row uses the nearest row below.
@@ -147,8 +188,8 @@ local function LD_writeWeight(item, value)
     item:setCustomWeight(true)
 end
 
--- head condition is deliberately absent: there's no setter for its maximum, and no blade has
--- a head to begin with.
+-- weapons. head condition is deliberately absent: spears and axes have one, but there's no
+-- setter for its maximum.
 LDItem.STATS = {
     minDamage            = { get = "getMinDamage", set = "setMinDamage", scales = true, min = 0 },
     maxDamage            = { get = "getMaxDamage", set = "setMaxDamage", scales = true, min = 0 },
@@ -172,7 +213,41 @@ LDItem.STAT_ORDER = {
     "weight", "doorDamage", "treeDamage",
 }
 
--- stats a weapon is better off with less of. UI colouring reads this; nothing else does.
+-- armor. the roll scales what it stops and how long it lasts; the rest is here for the
+-- item.stats hook to move. the two speed modifiers are what the piece does to whoever wears
+-- it, 1 being nothing at all.
+LDItem.ARMOR_STATS = {
+    biteDefense          = { get = "getBiteDefense", set = "setBiteDefense", scales = true, int = true, min = 0, max = 100 },
+    scratchDefense       = { get = "getScratchDefense", set = "setScratchDefense", scales = true, int = true, min = 0, max = 100 },
+    bulletDefense        = { get = "getBulletDefense", set = "setBulletDefense", scales = true, int = true, min = 0, max = 100 },
+    conditionMax         = { get = "getConditionMax", write = LD_writeConditionMax, scales = true, int = true, min = 1 },
+    conditionLowerChance = { get = "getConditionLowerChance", set = "setConditionLowerChance", int = true, min = 1 },
+    weight               = { get = "getActualWeight", write = LD_writeWeight, min = 0.01 },
+    insulation           = { get = "getInsulation", set = "setInsulation", min = 0, max = 1 },
+    runSpeedModifier     = { get = "getRunSpeedModifier", set = "setRunSpeedModifier", min = 0.1 },
+    combatSpeedModifier  = { get = "getCombatSpeedModifier", set = "setCombatSpeedModifier", min = 0.1 },
+}
+
+LDItem.ARMOR_STAT_ORDER = {
+    "biteDefense", "scratchDefense", "bulletDefense", "insulation",
+    "runSpeedModifier", "combatSpeedModifier", "conditionMax", "conditionLowerChance",
+    "weight",
+}
+
+-- the stat table an item is built from, and the order to read it in. nil for a loose blade
+-- or head: it carries a roll, but has no numbers of its own to move.
+function LDItem.statsFor(item)
+    if instanceof(item, "HandWeapon") then return LDItem.STATS, LDItem.STAT_ORDER end
+    if instanceof(item, "Clothing") then return LDItem.ARMOR_STATS, LDItem.ARMOR_STAT_ORDER end
+    return nil
+end
+
+function LDItem.statOrderFor(item)
+    local _, order = LDItem.statsFor(item)
+    return order or LDItem.STAT_ORDER
+end
+
+-- stats an item is better off with less of. UI colouring reads this; nothing else does.
 LDItem.LOWER_IS_BETTER = {
     weight = true,
     minRange = true,
@@ -208,12 +283,13 @@ function LDItem.baseStats(fullType)
     local cached = LD_baseCache[fullType]
     if cached then return cached end
 
-    local ok, weapon = pcall(instanceItem, fullType)
-    if not ok or not weapon or not instanceof(weapon, "HandWeapon") then return nil end
+    local ok, fresh = pcall(instanceItem, fullType)
+    local defs = ok and fresh and LDItem.statsFor(fresh)
+    if not defs then return nil end
 
     cached = {}
-    for stat, def in pairs(LDItem.STATS) do
-        cached[stat] = weapon[def.get](weapon)
+    for stat, def in pairs(defs) do
+        cached[stat] = fresh[def.get](fresh)
     end
 
     LD_baseCache[fullType] = cached
@@ -222,8 +298,8 @@ end
 
 -- rounds, clamps, and keeps the pairs the right way round. previews run this too, so what a
 -- tooltip promises is what the setters write.
-function LDItem.clampStats(stats)
-    for stat, def in pairs(LDItem.STATS) do
+function LDItem.clampStats(stats, defs)
+    for stat, def in pairs(defs or LDItem.STATS) do
         local value = stats[stat]
         if type(value) ~= "number" then
             stats[stat] = nil
@@ -245,11 +321,12 @@ function LDItem.clampStats(stats)
     return stats
 end
 
--- works out the numbers without touching the item. pass data to ask what the weapon would
+-- works out the numbers without touching the item. pass data to ask what the item would
 -- look like with a different spread, which is how the socket menu previews a card.
 -- returns stats, base, rolled: vanilla, and vanilla after the rarity roll but before cards.
 function LDItem.computeStats(item, data)
-    if not instanceof(item, "HandWeapon") then return nil end
+    local defs = LDItem.statsFor(item)
+    if not defs then return nil end
 
     data = data or LDItem.get(item)
     if not data then return nil end
@@ -259,7 +336,7 @@ function LDItem.computeStats(item, data)
 
     local mult = (data.pct or 100) / 100
     local stats = {}
-    for stat, def in pairs(LDItem.STATS) do
+    for stat, def in pairs(defs) do
         stats[stat] = def.scales and base[stat] * mult or base[stat]
     end
 
@@ -273,14 +350,15 @@ function LDItem.computeStats(item, data)
         stats = stats,
     })
 
-    return LDItem.clampStats(stats), base, rolled
+    return LDItem.clampStats(stats, defs), base, rolled
 end
 
 function LDItem.applyStats(item)
     local stats = LDItem.computeStats(item)
     if not stats then return nil end
 
-    for stat, def in pairs(LDItem.STATS) do
+    local defs = LDItem.statsFor(item)
+    for stat, def in pairs(defs) do
         local value = stats[stat]
         if type(value) == "number" then
             if def.write then

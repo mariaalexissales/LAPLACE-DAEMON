@@ -2,7 +2,7 @@
   "ContextMenu_LD_Spread": "Tarot Spread",
   "ContextMenu_LD_RemoveCard": "Remove %1",
   "ContextMenu_LD_NoCards": "No tarot cards",
-  "ContextMenu_LD_NoWeapon": "No forged weapon to put it in.",
+  "ContextMenu_LD_NothingForged": "Nothing forged to put it in.",
   "ContextMenu_LD_DrawCard": "Draw a Card",
   "ContextMenu_LD_DrawCardLore": "You pull from the top of the deck, and the rest of it goes poof, as if the universe took it back."
 }

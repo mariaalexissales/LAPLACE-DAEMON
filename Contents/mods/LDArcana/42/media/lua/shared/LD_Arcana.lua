@@ -43,7 +43,20 @@ LDArcana.STEPS = {
 
     -- average condition is max condition x condition lower chance, so it leans on both.
     averageCondition     = { spread = { conditionMax = 0.5, conditionLowerChance = 0.5 } },
+
+    -- armor. flat, because most pieces start with no insulation at all and a share of
+    -- nothing is nothing. the speed modifiers sit around 1, so a step is a small one.
+    biteDefense          = { add = 5 },
+    scratchDefense       = { add = 5 },
+    bulletDefense        = { add = 5 },
+    insulation           = { add = 0.10 },
+    runSpeedModifier     = { add = 0.02 },
+    combatSpeedModifier  = { add = 0.02 },
 }
+
+-- a slot holds one table of arrows per kind of item. a card with only armor arrows is an
+-- armor card, and one with both goes on either.
+LDArcana.MODS_KEY = { weapon = "mods", armor = "armorMods" }
 
 -- the card items live in this script module, as Tarot_<id>, with icon Item_LD_Tarot_<id>.
 -- build_tarot.py writes the items, names and icons off the same ids, reading them out of
@@ -113,7 +126,7 @@ end
 -- come out of a deck and never show in a menu. build_tarot.py reads this list to
 -- decide which items to write, so switching a card on means adding it here and re-running
 -- the tool.
-LDArcana.ACTIVE = { "EMPEROR", "CHARIOT", "DEATH", "TEMPERANCE" }
+LDArcana.ACTIVE = { "EMPRESS", "EMPEROR", "HIEROPHANT", "CHARIOT", "DEATH", "TEMPERANCE" }
 
 LDArcana.IS_ACTIVE = {}
 for _, id in ipairs(LDArcana.ACTIVE) do LDArcana.IS_ACTIVE[id] = true end
@@ -195,13 +208,13 @@ function LDArcana.define(id, effects)
             local slot = card[key]
 
             for entry, detail in pairs(value) do
-                if entry == "mods" then
-                    slot.mods = slot.mods or {}
+                if entry == "mods" or entry == "armorMods" then
+                    slot[entry] = slot[entry] or {}
                     for stat, arrows in pairs(detail) do
                         if not LDArcana.STEPS[stat] then
                             LDCore.warn("arcana define " .. id .. " " .. key .. ": no stat " .. tostring(stat))
                         else
-                            slot.mods[stat] = arrows
+                            slot[entry][stat] = arrows
                         end
                     end
                 elseif type(detail) ~= "function" or LDArcana.EFFECT_HOOKS[entry] then
@@ -216,19 +229,39 @@ function LDArcana.define(id, effects)
     return card
 end
 
--- does this slot do anything at all? the stub cards are registered but empty.
-function LDArcana.slotIsEmpty(card, position)
+-- the arrows a slot holds for that kind of item, or nil.
+function LDArcana.modsFor(card, position, kind)
+    local slot = card and card[position]
+    return slot and slot[LDArcana.MODS_KEY[kind or "weapon"]] or nil
+end
+
+-- does this slot do anything at all to that kind of item? the stub cards are registered
+-- but empty, and a weapon card's slots are empty as far as armor goes.
+function LDArcana.slotIsEmpty(card, position, kind)
     local slot = card and card[position]
     if not slot then return true end
 
-    if slot.mods then
-        for _ in pairs(slot.mods) do return false end
+    local mods = LDArcana.modsFor(card, position, kind)
+    if mods then
+        for _ in pairs(mods) do return false end
     end
     for effect in pairs(LDArcana.EFFECT_HOOKS) do
         if slot[effect] then return false end
     end
 
     return true
+end
+
+-- a card goes on an item it has a reading for, in any slot.
+function LDArcana.fits(card, item)
+    if not card or not item then return false end
+
+    local kind = LDItem.kindOf(item)
+    for _, position in ipairs(LDArcana.POSITIONS) do
+        if not LDArcana.slotIsEmpty(card, position, kind) then return true end
+    end
+
+    return false
 end
 
 -- one arrow's worth of a stat, added onto stats. from is what a pct step is a share of:
@@ -271,9 +304,17 @@ function LDArcana.modText(mods)
     local lines = {}
     if not mods then return lines end
 
-    local order = {}
-    for _, stat in ipairs(LDItem.STAT_ORDER) do order[#order + 1] = stat end
-    order[#order + 1] = "averageCondition"
+    -- both orders, since a line of arrows doesn't know what it's for. the stats they share
+    -- are only read once.
+    local order, seen = {}, {}
+    for _, list in ipairs({ LDItem.STAT_ORDER, LDItem.ARMOR_STAT_ORDER, { "averageCondition" } }) do
+        for _, stat in ipairs(list) do
+            if not seen[stat] then
+                seen[stat] = true
+                order[#order + 1] = stat
+            end
+        end
+    end
 
     for _, stat in ipairs(order) do
         local arrows = mods[stat]
@@ -290,8 +331,8 @@ function LDArcana.modText(mods)
     return lines
 end
 
--- what the weapon would look like with cardId in that slot, against what it looks like now.
--- cardId nil previews emptying the slot. returns nil for a weapon with no LD data.
+-- what the item would look like with cardId in that slot, against what it looks like now.
+-- cardId nil previews emptying the slot. returns nil for an item with no LD data.
 function LDArcana.preview(item, position, cardId)
     local data = LDItem.get(item)
     if not data then return nil end
@@ -307,7 +348,7 @@ function LDArcana.preview(item, position, cardId)
     if not after then return nil end
 
     local rows = {}
-    for _, stat in ipairs(LDItem.STAT_ORDER) do
+    for _, stat in ipairs(LDItem.statOrderFor(item)) do
         if before[stat] ~= after[stat] then
             rows[#rows + 1] = {
                 stat = stat,

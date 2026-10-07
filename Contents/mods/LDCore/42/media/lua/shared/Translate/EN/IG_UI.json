@@ -20,5 +20,12 @@
   "IGUI_LD_Stat_weight": "Encumbrance",
   "IGUI_LD_Stat_doorDamage": "Door Damage",
   "IGUI_LD_Stat_treeDamage": "Tree Damage",
-  "IGUI_LD_Stat_averageCondition": "Average Condition"
+  "IGUI_LD_Stat_averageCondition": "Average Condition",
+
+  "IGUI_LD_Stat_biteDefense": "Bite Defense",
+  "IGUI_LD_Stat_scratchDefense": "Scratch Defense",
+  "IGUI_LD_Stat_bulletDefense": "Bullet Defense",
+  "IGUI_LD_Stat_insulation": "Insulation",
+  "IGUI_LD_Stat_runSpeedModifier": "Movement Speed",
+  "IGUI_LD_Stat_combatSpeedModifier": "Attack Speed"
 }

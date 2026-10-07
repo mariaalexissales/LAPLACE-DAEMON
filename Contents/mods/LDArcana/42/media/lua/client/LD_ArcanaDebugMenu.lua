@@ -52,9 +52,12 @@ local function LD_onFillInventoryObjectContextMenu(playerNum, context, items)
             cardMenu:addOption("(Empty the slot)", item, LD_ArcanaDebugMenu.unsocket, position)
         end
 
+        -- the server would refuse the rest, so they aren't offered.
         for _, id in ipairs(LDArcana.activeCards()) do
-            local cardOption = cardMenu:addOption(LDArcana.cardName(id), item, LD_ArcanaDebugMenu.socket, position, id)
-            cardOption.iconTexture = LDArcana.cardTexture(id)
+            if LDArcana.fits(LDArcana.card(id), item) then
+                local cardOption = cardMenu:addOption(LDArcana.cardName(id), item, LD_ArcanaDebugMenu.socket, position, id)
+                cardOption.iconTexture = LDArcana.cardTexture(id)
+            end
         end
     end
 end
