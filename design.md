@@ -7,9 +7,9 @@ LAPLACE//DAEMON
 │   │ ├── LD_Core.lua        namespace, text helper, authority, hook bus (LDCore.HOOK)
 │   │ ├── LD_Net.lua         toServer / toClient / toAll, and the singleplayer bridge
 │   │ ├── LD_Rarities.lua    rarity table, damage pct ranges, weights per Blacksmith level
-│   │ ├── LD_Item.lua        item data, rolls, stats, name and sync (the RPG item layer)
+│   │ ├── LD_Item.lua        item data, what rolls, stats per kind, name and sync
 │   │ ├── LD_Craft.lua       recipe roles (forge / carry), handcraft wrap
-│   │ ├── LD_Events.lua      equip, load and hit events -> hooks
+│   │ ├── LD_Events.lua      equip, wear, load and hit events -> hooks
 │   │ └── Translate/EN/IG_UI.json   rarity and stat names
 │   ├── server/
 │   │ └── LD_Commands.lua    the command dispatcher, inventory helpers, rate limits
@@ -23,8 +23,8 @@ LAPLACE//DAEMON
 │ ├── ui/LDArcana/            GENERATED: 102x158 window art, Tarot_<ID>.png
 │ └── lua/
 │   ├── shared/
-│   │ ├── LD_Arcana.lua      card registry, STEPS, define(), mods, preview
-│   │ ├── LD_Spread.lua      socket / unsocket / each, one card per weapon
+│   │ ├── LD_Arcana.lua      card registry, STEPS, define(), mods, fits, preview
+│   │ ├── LD_Spread.lua      socket / unsocket / each, one card per item
 │   │ ├── LD_ArcanaHooks.lua one dispatcher per effect, past -> present -> future
 │   │ ├── LD_Deck.lua        the vanilla deck as the card source, loot + drop numbers
 │   │ ├── LD_Major/          one file per card, 22 of them
@@ -48,11 +48,27 @@ here, because it needs an art pack that is in no repo. See the README.
 # Core
 
 ## Rarity
-Forging rolls a rarity from `LDCore.RarityWeights[blacksmith level]`, then a damage pct inside
-that rarity's `pct` range. Min and max damage are the vanilla weapon's times the pct.
+Forging rolls a rarity from `LDCore.RarityWeights[blacksmith level]`, then a pct inside that
+rarity's `pct` range. On a weapon, min and max damage are the vanilla weapon's times the pct.
+On armor it is bite, scratch and bullet defense (never past 100) and max condition.
 
-The roll happens once, at the forge. Putting the blade on a handle (`AssembleBlade`) and
-taking it off (`DismantleBlade`) copy the item's LD data and never roll again.
+The roll happens once, at the forge. Putting a blade or head on its handle and taking it off
+copy the item's LD data and never roll again.
+
+## What rolls
+`LDItem.isRollable` is the gate, and only the recipes in `LDCore.Recipes` ever ask it.
+
+| item | rolls when |
+|------|------------|
+| a weapon | it is melee (`LDItem.isMelee`) and not in `LDCore.Handles` |
+| clothing | always; only the armor recipes are in the table |
+| anything else | it is sharpenable, or in `LDCore.Heads` |
+
+`LDCore.Heads` names the blunt heads (mace, sledge, the hammers, pickaxe, hoe, spade), because
+nothing in the game marks them. `LDCore.Handles` names what comes off beside the head in a
+dismantle: those are weapons to the game, and would otherwise take a copy of the roll.
+
+A loose blade or head carries a roll and nothing else. It has no stats until it is a weapon.
 
 Item data, in modData under `LD`:
 
@@ -64,21 +80,34 @@ along untouched whenever core copies the table.
 ## Recipe roles
 `LDCore.Recipes` maps a recipe name to a role.
 
-- `forge` rolls a fresh rarity onto what the recipe makes.
+- `forge` rolls a fresh rarity onto what the recipe makes. Armor comes off at full condition
+  against its new max.
 - `carry` copies the roll from what it uses up onto what it makes, and never rolls again, so
-  dismantling and reassembling can't be used to reroll.
+  dismantling and reassembling can't be used to reroll. The tools a recipe hands back
+  (`getAllKeepInputItems`) are never the source: a forged hammer is the tool in
+  `AssembleBlade`, and it has a roll of its own.
+
+The spear recipes that tie a knife to a stick (`BindSpear`, `DuctTapeSpear`, `WireSpear`,
+`ReclaimFromSpear`) carry too, so a forged knife doesn't go vanilla as a spear.
 
 ## Stats
-`LDItem.STATS` says where each stat is read and written, and what it may be set to.
+`LDItem.STATS` (weapons) and `LDItem.ARMOR_STATS` say where each stat is read and written, and
+what it may be set to. `LDItem.statsFor(item)` picks the table, and `LDItem.kindOf(item)` says
+`"weapon"` or `"armor"`.
 
 - `scales` is multiplied by the rolled damage pct.
 - `int` is whole numbers only; the setter takes an int.
 - `min` / `max` are clamped after the hooks have had their say.
 - `write` is a setter that needs more than one call.
 
-Everything in that table is open to the `item.stats` hook, which is how arcana cards move a
-weapon. Head condition is deliberately absent: there's no setter for its maximum, and no blade
-has a head to begin with.
+Everything in those tables is open to the `item.stats` hook, which is how arcana cards move an
+item. Head condition is deliberately absent: spears and axes have one, but there's no setter
+for its maximum.
+
+Armor is refreshed when it is worn (`OnClothingUpdated`) and on load, the way a weapon is on
+equip. Wearing a piece on the other arm or leg swaps it for a different item; vanilla copies
+the mod data, and the wrap around `ISClothingExtraAction:createItemNew` puts the condition back,
+which vanilla set against the script's max before ours existed.
 
 ## Hooks
 Core fires these with a ctx table and never knows who listens.
@@ -95,8 +124,12 @@ The ctx each one carries is listed on `LDCore.HOOK` in `LD_Core.lua`.
 
 # Arcana
 
-A weapon has three slots: Past, Present, Future. A card is one card in three readings: its
-stats come from its Arcana, and the slot decides how they manifest.
+A forged weapon or piece of armor has three slots: Past, Present, Future. A card is one card
+in three readings: its stats come from its Arcana, and the slot decides how they manifest.
+
+A card reads for weapons, for armor, or for both. `LDArcana.fits(card, item)` is true when the
+card has a reading for that kind of item in any slot; a card that doesn't fit isn't offered,
+and the server refuses it.
 
 The spread is stored inside the item's LD data as `{ past = id, present = id, future = id }`,
 an empty slot being a missing key. Core copies the whole LD table when a blade goes on a handle
@@ -105,8 +138,9 @@ or comes off one, so the cards travel with it without core knowing they exist.
 Cards are items (`LDArcana.Tarot_<ID>`). Socketing takes one out of the inventory; removing or
 replacing one hands it back. The same card can only be on a weapon once.
 
-Only the cards in `LDArcana.ACTIVE` exist in play: Emperor, Chariot, Death, Temperance. The
-rest keep their files and art but have no item. `build_tarot.py` reads the list, so a card
+Only the cards in `LDArcana.ACTIVE` exist in play: Chariot and Death (weapons), Empress and
+Hierophant (armor), Emperor and Temperance (both). The rest keep their files and art but have
+no item. `build_tarot.py` reads the list, so a card
 goes live by adding it there and re-running the tool.
 
 ## Writing a card
@@ -117,13 +151,16 @@ manifests, so one card covers all three readings rather than being three cards.
         area = "Power", theme = "Authority, force, dominance",
         stats = { "minDamage", "maxDamage", "knockback" },
         present = { title = "Force", text = "Everything goes into this strike.",
-                    mods = { maxDamage = 2, knockback = 1, baseSpeed = -1 } },
+                    mods = { maxDamage = 2, knockback = 1, baseSpeed = -1 },
+                    armorMods = { biteDefense = 2, scratchDefense = 2, weight = 1 } },
     })
 
-- `mods` are the design's arrows. 1 is up, 2 is a double up, -1 is down, always read in the
-  stat's own direction, so `weight = -1` is a lighter weapon.
-- `title` is the slot's name, e.g. "Impending dominance".
-- `text` is a line of flavour under it.
+- `mods` are the design's arrows for a weapon. 1 is up, 2 is a double up, -1 is down, always
+  read in the stat's own direction, so `weight = -1` is a lighter weapon.
+- `armorMods` are the arrows for armor. A card with only these is an armor card; one with
+  both goes on either.
+- `title` is the slot's name, e.g. "Impending dominance". It is shared by both readings.
+- `text` is a line of flavour under it, shown on a weapon. `armorText` is the same for armor.
 
 One arrow is worth whatever `LDArcana.STEPS` says, as a share of the weapon after its rarity
 roll, so a card is worth more on a legendary than on a common. Calling `define` twice for a
@@ -133,6 +170,13 @@ Stat keys: `minDamage`, `maxDamage`, `criticalChance`, `critMultiplier`, `baseSp
 `minRange`, `maxRange`, `knockback`, `conditionMax`, `conditionLowerChance`, `averageCondition`,
 `weight`. `averageCondition` isn't a real stat; it leans on max condition and condition lower
 chance together, the two things that decide how long a weapon lasts.
+
+Armor keys: `biteDefense`, `scratchDefense`, `bulletDefense`, `insulation`, `runSpeedModifier`
+(the design's Movement Speed), `combatSpeedModifier` (its armor Attack Speed), and the shared
+`conditionMax`, `conditionLowerChance`, `averageCondition` and `weight`. The armor steps are
+flat rather than a share of the roll, because most pieces start at no insulation at all.
+Metal armor is 60 to 100 bite and scratch before the roll, so on a high roll those are already
+at the cap and an arrow on them does nothing; the preview only lists what moves.
 
 For anything the arrows can't say, a slot can hold a function instead, named after an
 `LDArcana.EFFECT_HOOKS` entry. It gets `(ctx, card, position)` and runs after the mods.
@@ -144,6 +188,9 @@ For anything the arrows can't say, a slot can hold a function instead, named aft
   ctx: `player`, `item`, `data`, `loading`.
 - `hit` runs when the weapon hits a zombie or a player. ctx: `attacker`, `target`, `item`,
   `data`, `damage` (read only).
+
+`equip` and `hit` are weapon events. Armor has no worn or struck hook yet, so an armor reading
+is arrows and a `stats` function.
 
 A `stats` function must be pure. No side effects, or the socket menu, which runs it to preview
 a card it hasn't socketed, will lie about what that card would do.
@@ -183,6 +230,8 @@ rather than through `LDItem.set`, so it goes back through `LDItem.changed` or it
 leave the machine that did it.
 
 # Scope
-Blades only: weapons the game files as long blade or small blade, and the blades that go on
-their handles. The meat cleaver and the hand scythe are axes to the game, and spear heads lose
-the roll on a shaft, so all three stay vanilla for now.
+Everything forged that ends up a melee weapon, and the sixteen blacksmith armor recipes.
+
+Not in yet: the scythe (the game doesn't file it as a weapon), the spiked bats and clubs,
+welded scrap weapons and armor, bone / wood / tire armor, and the forged tools that happen to
+be weapons (the crowbar). Each is a row in `LDCore.Recipes`, or a row and a skill to roll off.
