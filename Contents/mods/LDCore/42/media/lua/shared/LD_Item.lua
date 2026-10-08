@@ -74,8 +74,8 @@ function LDItem.isMelee(weapon)
     return melee == true
 end
 
--- the heads that aren't sharpenable. nothing in the game marks them as the part of a weapon
--- that matters, so they're named.
+-- the heads that don't carry the sharpenable tag. nothing in the game marks them as the part
+-- of a weapon that matters, so they're named.
 LDCore.Heads = {
     ["Base.MaceHead"]           = true,
     ["Base.SledgehammerHead"]   = true,
@@ -109,7 +109,10 @@ function LDItem.isRollable(item)
     end
     if instanceof(item, "Clothing") then return true end
 
-    return item:isSharpenable() or LDCore.Heads[item:getFullType()] == true
+    -- the tag, not isSharpenable(): that one asks whether the item can be sharpened right
+    -- now, and a blade already at its sharpest says no. it would lose its roll coming off
+    -- the handle.
+    return item:hasTag(ItemTag.SHARPENABLE) or LDCore.Heads[item:getFullType()] == true
 end
 
 -- a copy, so hooks can change it freely. a level with no row uses the nearest row below.

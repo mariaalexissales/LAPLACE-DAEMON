@@ -77,7 +77,9 @@ local function LD_arrayList(items)
     return list
 end
 
--- what a finished craft hands its handler. the handlers only ever ask for these three lists.
+-- what a finished craft hands its handler. it has to answer everything the handlers ask,
+-- even the ones they ask inside a pcall: the game logs a failed call and stops the debugger
+-- on it whether or not anything was there to catch it.
 -- kept is the tools a recipe hands back. whether vanilla also counts those as consumed isn't
 -- something to lean on, so the test that cares puts its tool in both.
 local function LD_craft(created, consumed, kept)
@@ -89,6 +91,7 @@ local function LD_craft(created, consumed, kept)
         getAllCreatedItems = function() return createdList end,
         getAllConsumedItems = function() return consumedList end,
         getAllKeepInputItems = function() return keptList end,
+        getRecipe = function() return nil end,
     }
 end
 
@@ -148,7 +151,7 @@ function LDPlaytest.run(player)
         LD_check("a hand axe", rolls("Base.HandAxeForged"))
         LD_check("a mace", rolls("Base.Mace"))
         LD_check("a meat cleaver, which the game files as an axe", rolls("Base.MeatCleaverForged"))
-        LD_check("a sword blade", rolls("Base.SwordBlade"))
+        LD_check("a sword blade, even one too sharp to sharpen", rolls("Base.SwordBlade"))
         LD_check("a mace head, which nothing marks as sharpenable", rolls("Base.MaceHead"))
         LD_check("a cuirass", rolls("Base.Cuirass_Metal"))
         LD_check("a leftover iron bar doesn't", not rolls("Base.IronBarQuarter"))
@@ -219,10 +222,13 @@ function LDPlaytest.run(player)
         LD_check("max damage is vanilla x the roll", LD_near(sword:getMaxDamage(), expected),
             LD_n(sword:getMaxDamage()) .. " = " .. LD_n(base.maxDamage) .. " x " .. to.pct .. "%")
 
+        -- a sword sharpened all the way hands that edge to the blade that comes off it.
         local offAgain = inventory:AddItem("Base.SwordBlade")
+        offAgain:setSharpness(offAgain:getMaxSharpness())
         LDCore.CraftHandlers.carry(LD_craft({ offAgain }, { sword }))
         local back = LDItem.get(offAgain)
-        LD_check("taking it off the handle keeps the same roll", back ~= nil and back.pct == to.pct)
+        LD_check("taking it off the handle keeps the same roll, fully sharpened or not",
+            back ~= nil and back.pct == to.pct)
 
         -- a forged hammer is the tool in this recipe, and has a roll of its own.
         local hammer = inventory:AddItem("Base.SmithingHammer")

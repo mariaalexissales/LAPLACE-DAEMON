@@ -62,11 +62,14 @@ copy the item's LD data and never roll again.
 |------|------------|
 | a weapon | it is melee (`LDItem.isMelee`) and not in `LDCore.Handles` |
 | clothing | always; only the armor recipes are in the table |
-| anything else | it is sharpenable, or in `LDCore.Heads` |
+| anything else | it carries the sharpenable tag, or is in `LDCore.Heads` |
 
 `LDCore.Heads` names the blunt heads (mace, sledge, the hammers, pickaxe, hoe, spade), because
 nothing in the game marks them. `LDCore.Handles` names what comes off beside the head in a
 dismantle: those are weapons to the game, and would otherwise take a copy of the roll.
+
+The tag is read rather than `isSharpenable()`, which asks whether the item can be sharpened
+right now: a blade already at its sharpest says no, and would lose its roll coming off a handle.
 
 A loose blade or head carries a roll and nothing else. It has no stats until it is a weapon.
 
