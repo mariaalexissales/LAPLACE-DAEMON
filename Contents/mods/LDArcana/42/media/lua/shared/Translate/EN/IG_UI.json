@@ -9,9 +9,10 @@
   "IGUI_LD_TakeOut": "Take the card back out.",
   "IGUI_LD_DeckGone": "The rest of the deck is gone.",
 
-  "IGUI_LD_Refused_NoWeapon": "That weapon has no spread.",
+  "IGUI_LD_Refused_NoWeapon": "That has no spread.",
   "IGUI_LD_Refused_NoCard": "You aren't carrying that card.",
-  "IGUI_LD_Refused_Duplicate": "That card is already on this weapon.",
+  "IGUI_LD_Refused_WrongKind": "That card has no reading for this.",
+  "IGUI_LD_Refused_Duplicate": "That card is already in this spread.",
   "IGUI_LD_Refused_EmptySlot": "There's nothing in that slot.",
   "IGUI_LD_Refused_NoDeck": "You aren't carrying that deck."
 }

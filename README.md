@@ -1,9 +1,10 @@
 # LAPLACE//DAEMON
 
-An RPG item mod for Project Zomboid Build 42. Blades you forge roll a rarity off your
-Blacksmith level, and that rarity decides a damage range rather than a flat number, so two
-Rare swords don't hit the same. Then you give the weapon a fortune: three tarot cards in
-Past, Present and Future, where the slot a card sits in decides what it does.
+An RPG item mod for Project Zomboid Build 42. The weapons and armor you forge roll a rarity
+off your Blacksmith level, and that rarity decides a range rather than a flat number, so two
+Rare swords don't hit the same and two Rare cuirasses don't stop the same. Then you give the
+item a fortune: three tarot cards in Past, Present and Future, where the slot a card sits in
+decides what it does.
 
 Two mods, because the rarities stand on their own. Needs **42.20+**.
 
@@ -27,10 +28,15 @@ not the pack. Same judgement call as the card art in Dead Court Deck.
 
 ## How it fits together
 
-Forging rolls a rarity from `LDCore.RarityWeights[blacksmith level]`, then a damage pct inside
-that rarity's band. The roll happens **once**, at the forge: putting the blade on a handle and
-taking it back off copy the data rather than rolling again, so a blade can't be reforged into a
-better one by pulling it apart.
+Forging rolls a rarity from `LDCore.RarityWeights[blacksmith level]`, then a pct inside that
+rarity's band: damage on a weapon; bite, scratch and bullet defense and max condition on armor.
+The roll happens **once**, at the forge: putting a blade or head on its handle and taking it
+back off copy the data rather than rolling again, so nothing can be reforged into a better one
+by pulling it apart.
+
+What rolls is everything forged that ends up a melee weapon (blades, spears, axes, maces,
+hammers) and the blacksmith's metal armor. A card reads for weapons, for armor, or for both,
+and only goes on what it has a reading for.
 
 Core never knows Arcana exists. It fires five hooks with a ctx table — `forge.weights`,
 `forge.rolled`, `item.stats`, `weapon.equip`, `weapon.hit` — and Arcana listens. That is why
@@ -86,7 +92,7 @@ one either, so `.gitattributes` marks all four as generated and this table is th
 answer.
 
 Art is baked for all 22 majors, but only the cards in `LDArcana.ACTIVE` get an item and a name
-— Emperor, Chariot, Death and Temperance so far. Switching a card on means adding it there and
+— Empress, Emperor, Hierophant, Chariot, Death and Temperance so far. Switching a card on means adding it there and
 re-running the tool, which reads that list rather than keeping its own copy.
 
 ## Build
@@ -134,8 +140,8 @@ read-only deploy key, kept in the `ESTRAL_TOOLS_KEY` secret. PR titles have to s
 ## Testing
 
 In singleplayer with `-debug`, right-click the ground and pick **LD: Run Playtest**. It draws
-from a deck, forges a blade, puts it on a handle and takes it off, sockets cards, and checks
-each step, printing one `[LD TEST]` line per check to `console.txt` and cleaning up every item
+from a deck, forges a blade, a spear head, a mace head and a cuirass, puts them together and
+takes them apart, sockets cards into a sword and into the armor, and checks each step, printing one `[LD TEST]` line per check to `console.txt` and cleaning up every item
 it made. It can't cover the crafting window itself, anything visual, or save and reload.
 
 Because the net layer runs the same handlers with no remote server, that covers the multiplayer

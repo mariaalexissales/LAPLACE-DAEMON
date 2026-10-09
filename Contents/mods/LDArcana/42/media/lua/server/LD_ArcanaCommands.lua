@@ -38,6 +38,11 @@ function LD_Commands.handlers.socket(player, args)
             return
         end
 
+        if not LDArcana.fits(card, weapon) then
+            LD_Net.toClient(player, "refused", { reason = "WrongKind" })
+            return
+        end
+
         -- a card reads as one card wherever it sits, so it can't go on the same weapon twice.
         local already = LDSpread.positionOf(weapon, card.id)
         if already and already ~= args.position then

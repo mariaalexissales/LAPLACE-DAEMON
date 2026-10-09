@@ -3,6 +3,7 @@
 ----------
 
 require "LD_Core"
+require "LD_Item"
 require "LD_Arcana"
 require "LD_Spread"
 
@@ -19,9 +20,10 @@ for effect, hookName in pairs(LDArcana.EFFECT_HOOKS) do
         if not spread then return end
 
         LDSpread.each(spread, function(position, card)
-            -- the arrows from the card's design, then anything its own function wants to do.
+            -- the arrows from the card's design, the ones written for this kind of item, then
+            -- anything its own function wants to do.
             if effect == "stats" then
-                LDArcana.applyMods(ctx, card[position].mods)
+                LDArcana.applyMods(ctx, LDArcana.modsFor(card, position, LDItem.kindOf(ctx.item)))
             end
 
             local fn = card[position][effect]

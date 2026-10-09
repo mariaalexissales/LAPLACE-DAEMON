@@ -12,8 +12,9 @@ require "LD_Arcana"
 require "LD_Spread"
 require "TimedActions/LD_SocketCardAction"
 
--- the three slots of one weapon, with the card art in them. right-click a slot for the
--- cards you are carrying and what each would do there.
+-- the three slots of one weapon or piece of armor, with the card art in them. right-click a
+-- slot for the cards you are carrying and what each would do there. it was written for
+-- weapons first, which is why the item is self.weapon throughout.
 
 local PAD = 10
 local GAP = 10
@@ -218,7 +219,7 @@ function LD_SpreadWindow:createChildren()
     self:refresh()
 
     -- the stats list is drawn, not built from children, so the window is sized to it here.
-    local rows = math.ceil((#LDItem.STAT_ORDER + 1) / 2)
+    local rows = math.ceil((#LDItem.statOrderFor(self.weapon) + 1) / 2)
     self:setHeight(self.statsY + LD_fontHeight() + 4 + rows * ROW_H + PAD)
 end
 
@@ -272,7 +273,7 @@ function LD_SpreadWindow:prerender()
     y = y + LD_fontHeight() + 4
 
     local lines = {}
-    for _, stat in ipairs(LDItem.STAT_ORDER) do
+    for _, stat in ipairs(LDItem.statOrderFor(self.weapon)) do
         if self.stats[stat] ~= nil then
             lines[#lines + 1] = { LDCore.statName(stat), LDItem.formatNumber(self.stats[stat]) }
         end
@@ -302,20 +303,27 @@ local function LD_colour(good)
     return good and " <RGB:0.55,0.85,0.55> " or " <RGB:0.9,0.5,0.5> "
 end
 
--- what a card does in a slot: its own words, then the arrows from its design.
+-- what a card does in a slot: its own words, then the arrows its design has for this kind
+-- of item.
 function LD_SpreadWindow:cardEffectText(card, position)
     local slot = card[position]
+    local kind = LDItem.kindOf(self.weapon)
     local lines = {}
 
-    if slot.title then lines[#lines + 1] = " <RGB:0.98,0.82,0.45> " .. slot.title end
-    if slot.text then lines[#lines + 1] = " <RGB:0.7,0.7,0.7> " .. slot.text end
+    -- the title is shared. the flavour line was written about a weapon, so armor only gets
+    -- one if the card has its own.
+    local text = slot.text
+    if kind == "armor" then text = slot.armorText end
 
-    if LDArcana.slotIsEmpty(card, position) then
+    if slot.title then lines[#lines + 1] = " <RGB:0.98,0.82,0.45> " .. slot.title end
+    if text then lines[#lines + 1] = " <RGB:0.7,0.7,0.7> " .. text end
+
+    if LDArcana.slotIsEmpty(card, position, kind) then
         lines[#lines + 1] = " <RGB:0.6,0.6,0.6> " .. LDCore.text("IGUI_LD_NoEffect", "No effect yet.")
         return table.concat(lines, " <LINE> ")
     end
 
-    for _, mod in ipairs(LDArcana.modText(slot.mods)) do
+    for _, mod in ipairs(LDArcana.modText(LDArcana.modsFor(card, position, kind))) do
         lines[#lines + 1] = LD_colour(mod.good) .. mod.text
     end
 
@@ -404,8 +412,9 @@ function LD_SpreadWindow:openSlotMenu(position)
     for _, id in ipairs(LDArcana.activeCards()) do
         local entry = held[id]
 
-        -- a card already on this weapon isn't offered again, in this slot or any other.
-        if entry and not LDSpread.hasCard(self.weapon, id) then
+        -- a card already on this weapon isn't offered again, in this slot or any other, and
+        -- neither is one with no reading for it.
+        if entry and LDArcana.fits(LDArcana.card(id), self.weapon) and not LDSpread.hasCard(self.weapon, id) then
             local label = LDArcana.cardName(id)
             if entry.count > 1 then label = label .. " (x" .. entry.count .. ")" end
 
