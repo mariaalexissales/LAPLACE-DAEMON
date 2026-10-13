@@ -18,7 +18,9 @@ local ledgers = {}
 function LD_Commands.cooledDown(name, player, window)
     -- the limit is there to stop a remote client flooding the server. with no wire there is
     -- nothing to flood, and throttling a singleplayer game would only ever be a bug.
-    if not LDCore.hasRemoteServer() then return true end
+    -- isServer, not hasRemoteServer: that one is false inside the server process too, and
+    -- this file only runs there or in singleplayer.
+    if not isServer() then return true end
 
     local ledger = ledgers[name]
     if not ledger then
